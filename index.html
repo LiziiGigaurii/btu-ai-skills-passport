@@ -1,0 +1,1069 @@
+<title>BTU AI Skills Passport</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="BTU AI Skills Digital Passport prototype: verifiable AI skill stamps, versioning and blockchain-style verification.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Noto+Sans+Georgian:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* Layout: BTU magenta band on top, tabbed tool below; the passport itself is white "paper" following BTU's 4-page visual concept */
+:root {
+  --bg: #FBF6F9; --surface: #FFFFFF; --fg: #1C1220; --muted: #6F5F6B; --line: #EDD8E4;
+  --accent: #D4208F; --accent-ink: #FFFFFF; --accent-deep: #9C0E66; --accent-soft: #FCE4F2;
+  --ok: #1E7D46; --ok-bg: #DDF3E5; --warn: #8A5A00; --warn-bg: #FCEFCF; --bad: #B3261E; --bad-bg: #FADCD9;
+  --paper: #FFFFFF; --ink: #111111; --paper-line: rgba(17,17,17,.18);
+  --s-skill: #E8412C; --s-applied: #6B2BF5; --s-adv: #1B2A7A;
+  --f-display: "Archivo Black", "Noto Sans Georgian", "Arial Black", sans-serif;
+  --f-body: "Noto Sans Georgian", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1A1318; --surface: #261C23; --fg: #F3EAF0; --muted: #B9A6B3; --line: #3D2C37; --accent-soft: #3F1A31;
+  --ok: #6FD49A; --ok-bg: #173323; --warn: #F2C361; --warn-bg: #3A2E12; --bad: #FF8A80; --bad-bg: #3D1B19;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1A1318; --surface: #261C23; --fg: #F3EAF0; --muted: #B9A6B3; --line: #3D2C37; --accent-soft: #3F1A31;
+  --ok: #6FD49A; --ok-bg: #173323; --warn: #F2C361; --warn-bg: #3A2E12; --bad: #FF8A80; --bad-bg: #3D1B19;
+  color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.band { background: var(--accent); color: #fff; }
+.band-in, .wrap { max-width: 1160px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.band-in { padding-block: 22px 24px; }
+.wrap { padding-block: 0 56px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-mark { background: #fff; color: var(--accent); font-family: var(--f-display); font-size: 12px; line-height: 1.05; padding: 6px 9px; letter-spacing: .02em; }
+.brand h1 { margin: 0; font-family: var(--f-display); font-size: 22px; letter-spacing: .01em; text-wrap: balance; }
+.brand p { margin: 0; color: rgba(255,255,255,.86); font-size: 13px; }
+.top-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.demo-note { font-size: 12px; color: rgba(255,255,255,.86); max-width: 44ch; margin: 0; }
+.theme-btn { all: unset; cursor: pointer; border: 1.5px solid rgba(255,255,255,.7); color: #fff; padding: 5px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.theme-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+nav.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: thin; }
+nav.tabs button { all: unset; cursor: pointer; padding: 12px 14px; font-weight: 600; font-size: 14px; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
+nav.tabs button:hover { color: var(--accent); }
+nav.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+nav.tabs button:focus-visible, .btn:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, .linkish:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.panel { margin-top: 22px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: 600 14px var(--f-body); padding: 8px 14px; cursor: pointer; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+.btn.danger { color: var(--bad); }
+.btn.sm { padding: 5px 10px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+select, input, textarea { font: 14px var(--f-body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; }
+input[type="checkbox"] { width: auto; accent-color: var(--accent); }
+textarea { font-family: var(--f-mono); font-size: 12px; min-height: 220px; resize: vertical; }
+label.f { display: grid; gap: 4px; font-size: 13px; font-weight: 600; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.mono { font-family: var(--f-mono); font-size: 12px; word-break: break-all; }
+h2.h { font-size: 20px; margin: 0 0 4px; text-wrap: balance; }
+.lead { margin: 0 0 18px; color: var(--muted); max-width: 70ch; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+@media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.side { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.side h3, .card h3 { margin: 0; font-size: 15px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.form { display: grid; gap: 12px; }
+hr.sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
+
+.ver { border-left: 3px solid var(--line); padding: 6px 8px 6px 10px; display: grid; gap: 2px; font-size: 13px; }
+.ver.active { border-left-color: var(--accent); background: var(--accent-soft); border-radius: 0 6px 6px 0; }
+.ver .head { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+.pill { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 99px; white-space: nowrap; letter-spacing: .03em; display: inline-block; }
+.pill.ACTIVE, .pill.good { background: var(--ok-bg); color: var(--ok); }
+.pill.SUPERSEDED, .pill.mid { background: var(--warn-bg); color: var(--warn); }
+.pill.REVOKED, .pill.low { background: var(--bad-bg); color: var(--bad); }
+.pill.tier { background: var(--accent-soft); color: var(--accent-deep); }
+.add { color: var(--ok); } .rem { color: var(--bad); }
+.linkish { all: unset; cursor: pointer; color: var(--accent); font-size: 12px; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { all: unset; cursor: pointer; border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; font-size: 12px; font-weight: 600; background: var(--surface); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.result { border-radius: 10px; padding: 18px; display: grid; gap: 6px; }
+.result .big { font-size: 20px; font-weight: 800; }
+.result.VALID { background: var(--ok-bg); color: var(--ok); }
+.result.OUTDATED { background: var(--warn-bg); color: var(--warn); }
+.result.REVOKED, .result.NOT_FOUND { background: var(--bad-bg); color: var(--bad); }
+.result dl { margin: 6px 0 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; color: var(--fg); font-size: 13px; }
+.result dt { font-weight: 600; } .result dd { margin: 0; min-width: 0; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; max-width: calc(100% - 32px); z-index: 20; }
+
+/* ---------- Passport paper ---------- */
+.paper { background: var(--paper); color: var(--ink); border-radius: 14px; border-top: 6px solid var(--accent); padding: 32px 36px 72px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(156,14,102,.14); min-height: 420px; }
+.paper + .paper { margin-top: 22px; }
+.paper .foot-l { position: absolute; left: 36px; bottom: 22px; background: var(--accent); font-family: var(--f-display); font-size: 12px; line-height: 1.05; padding: 6px 9px; color: #fff; }
+.paper .foot-r { position: absolute; right: 36px; bottom: 26px; font-family: var(--f-display); font-size: 11px; letter-spacing: .04em; }
+.paper .page-no { position: absolute; right: 36px; top: 20px; font-size: 11px; color: rgba(17,17,17,.45); font-family: var(--f-mono); }
+.shared-flag { display: inline-block; margin-bottom: 10px; background: var(--accent-soft); color: var(--accent-deep); font-size: 11px; font-weight: 800; letter-spacing: .05em; padding: 3px 9px; border-radius: 99px; }
+.p-title { font-family: var(--f-display); font-size: clamp(30px, 6vw, 52px); line-height: .95; margin: 0; letter-spacing: -.01em; }
+.p-sub { font-size: clamp(24px, 4.6vw, 40px); font-weight: 400; margin: 2px 0 0; letter-spacing: .01em; }
+.stars { position: absolute; right: 36px; top: 34px; display: grid; gap: 4px; color: var(--accent); font-size: 22px; line-height: 1; }
+.cover-fields { margin-top: 34px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; max-width: 560px; }
+.cover-fields div { font-family: var(--f-display); font-size: 14px; letter-spacing: .03em; }
+.cover-fields span { font-family: var(--f-body); font-weight: 600; font-size: 16px; letter-spacing: 0; display: block; border-bottom: 1px solid var(--paper-line); padding-bottom: 3px; }
+.tier-bars { margin-top: 26px; display: grid; gap: 6px; max-width: 420px; }
+.tbar { display: grid; grid-template-columns: 120px minmax(0, 1fr) 34px; gap: 8px; align-items: center; font-size: 11px; font-weight: 600; }
+.tbar .track { height: 8px; background: rgba(17,17,17,.08); border-radius: 99px; overflow: hidden; }
+.tbar .fill { height: 100%; border-radius: 99px; }
+.tbar .n { font-family: var(--f-mono); text-align: right; }
+.cover-stamps { position: absolute; right: 40px; bottom: 70px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.cs { font-family: var(--f-display); font-size: 10px; padding: 5px 9px; letter-spacing: .04em; }
+.cs.a { background: var(--accent); color: #fff; transform: rotate(-6deg); }
+.cs.b { background: #fff; color: var(--accent-deep); border: 2px solid var(--accent-deep); transform: rotate(5deg); }
+.qrbox { display: grid; justify-items: center; gap: 4px; background: #fff; padding: 6px; border: 1px solid var(--paper-line); }
+.qrbox small { font-size: 9px; letter-spacing: .05em; font-family: var(--f-display); }
+@media (max-width: 680px) {
+  .paper { padding: 22px 18px 70px; }
+  .paper .foot-l { left: 18px; } .paper .foot-r { right: 18px; } .stars { right: 18px; } .paper .page-no { right: 18px; }
+  .cover-fields { grid-template-columns: minmax(0, 1fr); }
+  .cover-stamps { position: static; align-items: flex-start; margin-top: 22px; }
+}
+.about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 28px; }
+@media (max-width: 760px) { .about { grid-template-columns: minmax(0, 1fr); } }
+.about h3 { font-family: var(--f-display); font-size: 22px; line-height: 1.05; margin: 0 0 10px; }
+.about h4 { font-family: var(--f-display); font-size: 17px; margin: 0 0 12px; color: var(--accent); }
+.about p { font-size: 13px; margin: 0 0 10px; }
+.tier-row { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 12px; align-items: center; margin-bottom: 12px; font-size: 12px; }
+.tier-row b { display: block; font-family: var(--f-display); font-size: 12px; letter-spacing: .03em; }
+.grow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--f-display); font-size: 11px; letter-spacing: .04em; margin-top: 8px; }
+.grow span { border: 1.5px solid var(--ink); padding: 3px 7px; }
+.grow i { font-style: normal; color: var(--accent); }
+.sec-h { font-family: var(--f-display); font-size: 24px; margin: 0; }
+.sec-s { font-size: 12px; margin: 2px 0 16px; }
+.sgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); border-top: 1px solid var(--paper-line); border-left: 1px solid var(--paper-line); }
+.scell { border-right: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); min-height: 168px; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.scell .d { font-family: var(--f-mono); font-size: 10px; color: rgba(17,17,17,.55); }
+.scell b { font-size: 11px; text-transform: uppercase; line-height: 1.2; letter-spacing: .02em; }
+.scell .t { font-size: 10px; color: rgba(17,17,17,.6); }
+.scell.new { animation: pop .8s ease-out; }
+@keyframes pop { from { background: rgba(212,32,143,.22); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .scell.new { animation: none; } }
+.stamp { display: grid; place-items: center; flex: none; }
+.st-skill { width: 58px; height: 52px; position: relative; }
+.st-skill::before { content: ""; position: absolute; inset: 0; background: var(--s-skill); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.st-skill span { position: relative; margin-top: 20px; color: #fff; font-family: var(--f-display); font-size: 7px; letter-spacing: .04em; }
+.st-applied { border: 2px solid var(--s-applied); padding: 2px; transform: rotate(-4deg); }
+.st-applied span { background: var(--s-applied); color: #fff; font-family: var(--f-display); font-size: 7px; line-height: 1.2; padding: 6px; text-align: center; display: block; letter-spacing: .03em; }
+.st-adv { width: 54px; height: 54px; border-radius: 50%; background: var(--s-adv); box-shadow: 0 0 0 3px #fff inset, 0 0 0 2px var(--s-adv); color: #fff; font-family: var(--f-display); font-size: 7px; text-align: center; line-height: 1.2; letter-spacing: .03em; }
+.tbl-wrap { overflow-x: auto; }
+table.det { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 640px; }
+table.det th { text-align: left; font-family: var(--f-display); font-size: 11px; letter-spacing: .04em; border-bottom: 2px solid var(--ink); padding: 8px 8px 8px 0; }
+table.det td { border-bottom: 1px solid var(--paper-line); padding: 8px 8px 8px 0; vertical-align: middle; }
+table.det td.sk { font-weight: 800; text-transform: uppercase; font-size: 11px; }
+table.det td.dt { font-family: var(--f-mono); font-size: 11px; white-space: nowrap; }
+
+/* ---------- lists, tables in app chrome ---------- */
+table.list { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 620px; }
+table.list th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .03em; border-bottom: 1px solid var(--line); padding: 8px 10px 8px 0; }
+table.list td { border-bottom: 1px solid var(--line); padding: 10px 10px 10px 0; vertical-align: middle; }
+table.list td.num { font-variant-numeric: tabular-nums; }
+.mini-stamps { display: flex; gap: 4px; flex-wrap: wrap; }
+.dot { width: 12px; height: 12px; display: inline-block; flex: none; }
+.dot.AI_SKILL { background: var(--s-skill); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.dot.AI_APPLIED_SKILL { background: var(--s-applied); }
+.dot.AI_ADVANCED_SKILL { background: var(--s-adv); border-radius: 50%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.tile b { display: block; font-family: var(--f-display); font-size: 28px; color: var(--accent); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile span { font-size: 13px; color: var(--muted); }
+.hbars { display: grid; gap: 8px; }
+.hbar { display: grid; grid-template-columns: minmax(0, 230px) minmax(0, 1fr) 28px; gap: 10px; align-items: center; font-size: 13px; }
+.hbar .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.hbar .track { height: 12px; background: var(--accent-soft); border-radius: 3px; overflow: hidden; }
+.hbar .fill { height: 100%; background: var(--accent); border-radius: 3px; }
+.hbar .n { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+@media (max-width: 560px) { .hbar { grid-template-columns: minmax(0, 1fr) 28px; } .hbar .track { grid-column: 1 / -1; grid-row: 2; } }
+.cols { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding-top: 8px; border-bottom: 1px solid var(--line); }
+.col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; min-width: 0; }
+.col .bar { width: 100%; max-width: 46px; background: var(--accent); border-radius: 4px 4px 0 0; }
+.col .v { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.col-l { display: flex; gap: 10px; }
+.col-l span { flex: 1; text-align: center; font-size: 11px; color: var(--muted); min-width: 0; }
+.log { display: grid; gap: 6px; font-size: 13px; max-height: 340px; overflow: auto; }
+.log div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.log time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+
+.match { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.ring { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--accent-soft) 0); position: relative; }
+.ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--surface); }
+.ring span { position: relative; z-index: 1; }
+
+.block { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; font-size: 13px; min-width: 0; }
+.block.broken { border-color: var(--bad); background: var(--bad-bg); }
+.chain { display: grid; gap: 8px; }
+.chain .link { text-align: center; color: var(--muted); font-size: 12px; line-height: 1; }
+.kv { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 2px 10px; }
+.kv > span:nth-child(odd) { color: var(--muted); font-size: 12px; }
+.confirm { background: var(--bad-bg); color: var(--fg); border-radius: 8px; padding: 10px; display: grid; gap: 8px; font-size: 13px; }
+details.box { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+details.box summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+details.box[open] summary { margin-bottom: 8px; }
+.vis-list { display: grid; gap: 6px; font-size: 13px; }
+.vis-list label { display: flex; gap: 8px; align-items: flex-start; }
+.csv-out { display: grid; gap: 2px; font-size: 13px; }
+@media print { .band, nav.tabs, .side, .toast { display: none !important; } .layout { display: block; } body { background: #fff; } .paper { box-shadow: none; break-after: page; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+
+<div class="band"><div class="band-in">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark">AI SKILLS<br>DIGITAL PASSPORT</div>
+      <div>
+        <h1>BTU AI Skills Passport</h1>
+        <p>სატესტო პროტოტიპი · Business and Technology University</p>
+      </div>
+    </div>
+    <div class="top-tools">
+      <p class="demo-note">ბლოკჩეინი სიმულირებულია ბრაუზერში: hash-ები ბლოკებად ებმის ერთმანეთს. რეალურ ვერსიაში ამას Polygon-ის smart contract ჩაანაცვლებს.</p>
+      <button class="theme-btn" id="theme-btn" type="button">თემა: სისტემური</button>
+    </div>
+  </header>
+</div></div>
+
+<div class="wrap">
+  <nav class="tabs" role="tablist" aria-label="განყოფილებები">
+    <button role="tab" id="tab-passport" data-tab="passport" aria-selected="true">პასპორტი</button>
+    <button role="tab" id="tab-students" data-tab="students" aria-selected="false">სტუდენტები</button>
+    <button role="tab" id="tab-admin" data-tab="admin" aria-selected="false">BTU ადმინი</button>
+    <button role="tab" id="tab-employer" data-tab="employer" aria-selected="false">დამსაქმებელი</button>
+    <button role="tab" id="tab-verify" data-tab="verify" aria-selected="false">ვერიფიკაცია</button>
+    <button role="tab" id="tab-analytics" data-tab="analytics" aria-selected="false">ანალიტიკა</button>
+    <button role="tab" id="tab-ledger" data-tab="ledger" aria-selected="false">ბლოკჩეინი</button>
+  </nav>
+  <section class="panel" id="panel-passport"></section>
+  <section class="panel" id="panel-students" hidden></section>
+  <section class="panel" id="panel-admin" hidden></section>
+  <section class="panel" id="panel-employer" hidden></section>
+  <section class="panel" id="panel-verify" hidden></section>
+  <section class="panel" id="panel-analytics" hidden></section>
+  <section class="panel" id="panel-ledger" hidden></section>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+"use strict";
+
+/* =========================================================
+   1. Skill catalog (from the BTU presentation)
+   ========================================================= */
+const SKILLS = [
+  { code: "PROMPT_PRO", tier: "AI_SKILL", name: "Prompt Engineering for Professional Tasks", source: "Prompt Engineering Workshop", description: "Applied key prompting techniques for text, image and data generation tasks.",
+    kw: ["prompt", "chatgpt", "gpt", "llm", "generative", "პრომპტ", "გენერაციულ"] },
+  { code: "AI_VERIFY", tier: "AI_SKILL", name: "AI Output Verification & Fact Checking", source: "AI Output Audit & Fact-Checking Lab", description: "Checked AI outputs for accuracy, hallucinations and source reliability.",
+    kw: ["fact", "verification", "accuracy", "quality", "hallucination", "review", "გადამოწმ", "სიზუსტ", "ხარისხ"] },
+  { code: "AI_RESEARCH", tier: "AI_SKILL", name: "AI-Assisted Research & Information Synthesis", source: "AI Research & Synthesis Workshop", description: "Used AI tools to find, compare and synthesise information.",
+    kw: ["research", "synthesis", "information", "report", "კვლევ", "ანგარიშ", "ინფორმაცი"] },
+  { code: "AI_PRIVACY", tier: "AI_SKILL", name: "Privacy-Safe & Responsible AI Use", source: "Responsible & Privacy-Safe AI Workshop", description: "Explored bias, data privacy and responsible AI use in real-world contexts.",
+    kw: ["privacy", "gdpr", "responsible", "security", "compliance", "კონფიდენციალ", "უსაფრთხოებ", "პერსონალურ"] },
+  { code: "AI_AUTOMATION", tier: "AI_APPLIED_SKILL", name: "AI Workflow Automation", source: "AI Automation Sprint", description: "Applied multiple AI tools to automate a routine task and optimise workflow.",
+    kw: ["automation", "workflow", "zapier", "n8n", "make.com", "process", "ავტომატიზაც", "პროცეს"] },
+  { code: "AI_DATA", tier: "AI_APPLIED_SKILL", name: "AI Data Analysis Project", source: "AI Data Challenge / Mini Bootcamp", description: "Completed a data analysis project using AI-assisted tools and techniques.",
+    kw: ["data", "excel", "sql", "python", "dashboard", "power bi", "მონაცემ", "ანალიზ"] },
+  { code: "AI_PROTO", tier: "AI_APPLIED_SKILL", name: "AI Solution Prototyping", source: "AI Solution Prototype Bootcamp", description: "Built and tested a working AI solution prototype for a real problem.",
+    kw: ["prototype", "mvp", "product", "startup", "build", "პროტოტიპ", "პროდუქტ", "სტარტაპ"] },
+  { code: "AI_MARKETING", tier: "AI_APPLIED_SKILL", name: "AI for Marketing, Audience & Content Intelligence", source: "AI Marketing Intelligence Bootcamp", description: "Used AI for audience insights, campaign ideas and content creation.",
+    kw: ["marketing", "content", "social media", "smm", "audience", "campaign", "brand", "მარკეტინგ", "კონტენტ", "აუდიტორი", "კამპანი"] },
+  { code: "AGENTIC_AI", tier: "AI_ADVANCED_SKILL", name: "Prompt Engineering & Agentic AI", source: "ვაიბ ქოუდინგი და AI-აგენტური ინჟინერია", description: "Built and tested AI agents for practical use cases, including prompt design and evaluation.",
+    kw: ["agent", "agentic", "vibe coding", "copilot", "llm apps", "langchain", "აგენტ", "ვაიბ"] },
+  { code: "ML_DL", tier: "AI_ADVANCED_SKILL", name: "Machine Learning & Deep Learning", source: "ხელოვნური ინტელექტი და მანქანური სწავლების საწყისები; მანქანური სწავლება (ღრმა დასწავლა)", description: "Built, trained and evaluated machine learning and deep learning models.",
+    kw: ["machine learning", "deep learning", " ml ", "model", "neural", "pytorch", "tensorflow", "scikit", "მანქანურ", "ნეირონ", "მოდელ"] },
+  { code: "AI_ETHICS", tier: "AI_ADVANCED_SKILL", name: "AI Governance, Ethics & Regulation", source: "ხელოვნური ინტელექტი, ეთიკა და სამართალი", description: "Analysed ethical, legal and regulatory aspects of AI systems.",
+    kw: ["ethics", "regulation", "governance", "legal", "law", "policy", "ai act", "ეთიკ", "სამართ", "რეგულაცი"] },
+  { code: "AI_ANALYTICS", tier: "AI_ADVANCED_SKILL", name: "AI-Driven Analytics & Marketing Intelligence", source: "ციფრული ანალიტიკა და ხელოვნური ინტელექტი", description: "Applied AI-driven analytics to digital marketing data.",
+    kw: ["analytics", "google analytics", "kpi", "insights", "metrics", "ანალიტიკ", "მეტრიკ"] },
+];
+const SKILL = Object.fromEntries(SKILLS.map(s => [s.code, s]));
+const TIERS = ["AI_SKILL", "AI_APPLIED_SKILL", "AI_ADVANCED_SKILL"];
+const TIER = {
+  AI_SKILL: { label: "AI Skill", sub: "Focused Learning", earned: "Workshop", color: "var(--s-skill)", ka: "მოკლე სასწავლო გამოცდილებით (ვორქშოფი, ლაბი) განვითარებული კომპეტენცია" },
+  AI_APPLIED_SKILL: { label: "AI Applied Skill", sub: "Applied Learning", earned: "Bootcamp (3-5 day program)", color: "var(--s-applied)", ka: "პრაქტიკული პროექტით ან ინტენსიური აქტივობით დადასტურებული კომპეტენცია" },
+  AI_ADVANCED_SKILL: { label: "AI Advanced Skill", sub: "Extended Academic Learning", earned: "Academic Course (with assignments)", color: "var(--s-adv)", ka: "აკადემიური კურსის ფარგლებში განვითარებული და შეფასებული კომპეტენცია" },
+};
+const ISSUER = "Business and Technology University (BTU)";
+const ZERO = "0".repeat(64);
+const STORE_KEY = "btu-passport-demo-v2";
+const IN_FRAME = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+
+/* =========================================================
+   2. Hashing
+   ========================================================= */
+function canonicalize(v) {
+  if (Array.isArray(v)) return "[" + v.map(canonicalize).join(",") + "]";
+  if (v !== null && typeof v === "object") {
+    return "{" + Object.keys(v).sort().filter(k => v[k] !== undefined)
+      .map(k => JSON.stringify(k) + ":" + canonicalize(v[k])).join(",") + "}";
+  }
+  return JSON.stringify(v);
+}
+async function sha256(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+const hashPassport = data => sha256(canonicalize(data));
+
+/* =========================================================
+   3. State
+   ========================================================= */
+let state = null;
+let ui = { tab: "passport", student: "giorgi-kapanadze", lastAdded: null, confirmRevoke: false, shared: false, search: "", tierFilter: "", cmpA: null, cmpB: null };
+
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+function load() { try { const s = localStorage.getItem(STORE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+const student = slug => state.students.find(s => s.slug === slug);
+const activeVersion = st => [...st.versions].reverse().find(v => v.status === "ACTIVE") || st.versions[st.versions.length - 1];
+function logAction(text, when) { state.log.unshift({ at: when || new Date().toISOString(), text }); state.log = state.log.slice(0, 200); }
+
+/* =========================================================
+   4. Simulated blockchain
+   ========================================================= */
+async function blockHash(b) {
+  return sha256(canonicalize({ index: b.index, timestamp: b.timestamp, action: b.action, passportHash: b.passportHash, prevHash: b.prevHash }));
+}
+async function addBlock(action, passportHash, when) {
+  const prev = state.ledger[state.ledger.length - 1];
+  const b = { index: state.ledger.length, timestamp: when || new Date().toISOString(), action, passportHash, prevHash: prev ? prev.hash : ZERO };
+  b.hash = await blockHash(b);
+  state.ledger.push(b);
+  return b;
+}
+async function checkChain() {
+  const bad = new Set();
+  for (let i = 0; i < state.ledger.length; i++) {
+    const b = state.ledger[i];
+    const expectedPrev = i === 0 ? ZERO : state.ledger[i - 1].hash;
+    if ((await blockHash(b)) !== b.hash || b.prevHash !== expectedPrev) bad.add(i);
+  }
+  return bad;
+}
+
+/* =========================================================
+   5. Passport generation, versions, verification
+   ========================================================= */
+async function createVersion(st, changelog, when) {
+  const last = st.versions[st.versions.length - 1];
+  const issuedAt = when || new Date().toISOString();
+  const data = {
+    passportId: st.passportId,
+    version: (last ? last.versionNo : 0) + 1,
+    issuer: ISSUER,
+    issuedAt,
+    holder: { firstName: st.firstName, lastName: st.lastName },
+    previousHash: last ? last.hash : null,
+    stamps: [...st.stamps].sort((a, b) => a.earnedAt.localeCompare(b.earnedAt)).map(s => {
+      const k = SKILL[s.code];
+      return { code: k.code, skill: k.name, tier: k.tier, source: k.source, description: s.description || k.description, earnedThrough: s.earnedThrough, earnedAt: s.earnedAt };
+    }),
+  };
+  const hash = await hashPassport(data);
+  if (last && last.status === "ACTIVE") last.status = "SUPERSEDED";
+  const block = await addBlock("ISSUE", hash, issuedAt);
+  const v = { versionNo: data.version, data, hash, previousHash: data.previousHash, status: "ACTIVE", changelog, createdAt: issuedAt, block: block.index };
+  st.versions.push(v);
+  logAction(st.firstName + " " + st.lastName + " · v" + v.versionNo + " · " + changelog, issuedAt);
+  return v;
+}
+function diff(a, b) {
+  const inA = new Set(a.stamps.map(s => s.code)), inB = new Set(b.stamps.map(s => s.code));
+  return { added: b.stamps.filter(s => !inA.has(s.code)), removed: a.stamps.filter(s => !inB.has(s.code)) };
+}
+async function verifyHash(h) {
+  h = (h || "").trim().toLowerCase();
+  const issue = state.ledger.find(b => b.action === "ISSUE" && b.passportHash === h);
+  if (!issue) return { status: "NOT_FOUND", hash: h };
+  const revoked = state.ledger.some(b => b.action === "REVOKE" && b.passportHash === h);
+  let ver = null, st = null;
+  for (const s of state.students) { const v = s.versions.find(x => x.hash === h); if (v) { ver = v; st = s; } }
+  const status = revoked ? "REVOKED" : (ver && ver.status === "SUPERSEDED") ? "OUTDATED" : "VALID";
+  return { status, hash: h, block: issue, version: ver, student: st };
+}
+
+/* =========================================================
+   6. Seed data
+   ========================================================= */
+const TRANSLIT = { "ა":"a","ბ":"b","გ":"g","დ":"d","ე":"e","ვ":"v","ზ":"z","თ":"t","ი":"i","კ":"k","ლ":"l","მ":"m","ნ":"n","ო":"o","პ":"p","ჟ":"zh","რ":"r","ს":"s","ტ":"t","უ":"u","ფ":"p","ქ":"k","ღ":"gh","ყ":"y","შ":"sh","ჩ":"ch","ც":"ts","ძ":"dz","წ":"ts","ჭ":"ch","ხ":"kh","ჯ":"j","ჰ":"h" };
+const slugify = s => s.toLowerCase().split("").map(c => TRANSLIT[c] ?? c).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+function newStudentRecord(p, n) {
+  return { passportId: "BTU-AI-2026-" + String(n).padStart(4, "0"), firstName: p.firstName, lastName: p.lastName, email: p.email, faculty: p.faculty,
+    slug: p.slug || slugify(p.firstName + " " + p.lastName), versions: [], hidden: [], stamps: [] };
+}
+async function seed() {
+  state = { students: [], ledger: [], log: [] };
+  const people = [
+    { firstName: "ნინო", lastName: "ბერიძე", email: "nino.beridze@btu.edu.ge", faculty: "ბიზნესის სკოლა",
+      stamps: [["PROMPT_PRO", "2026-09-12"], ["AI_VERIFY", "2026-09-26"], ["AI_AUTOMATION", "2026-10-06"], ["AI_MARKETING", "2026-10-08"]] },
+    { firstName: "გიორგი", lastName: "კაპანაძე", email: "giorgi.kapanadze@btu.edu.ge", faculty: "ტექნოლოგიების სკოლა",
+      stamps: [["PROMPT_PRO", "2026-09-10"], ["AI_DATA", "2026-09-19"], ["ML_DL", "2026-09-30"]] },
+    { firstName: "ანა", lastName: "მაისურაძე", email: "ana.maisuradze@btu.edu.ge", faculty: "ბიზნესის სკოლა",
+      stamps: [["AI_PRIVACY", "2026-09-24"]] },
+    { firstName: "ლუკა", lastName: "წიკლაური", email: "luka.tsiklauri@btu.edu.ge", faculty: "ტექნოლოგიების სკოლა",
+      stamps: [["PROMPT_PRO", "2026-09-12"], ["AI_PROTO", "2026-09-28"], ["AGENTIC_AI", "2026-10-03"], ["AI_AUTOMATION", "2026-10-06"]] },
+    { firstName: "მარიამ", lastName: "ჯავახიშვილი", email: "mariam.javakhishvili@btu.edu.ge", faculty: "ბიზნესის სკოლა",
+      stamps: [["AI_RESEARCH", "2026-09-17"], ["AI_ETHICS", "2026-09-29"], ["AI_ANALYTICS", "2026-10-02"], ["AI_MARKETING", "2026-10-08"]] },
+    { firstName: "საბა", lastName: "გელაშვილი", email: "saba.gelashvili@btu.edu.ge", faculty: "ტექნოლოგიების სკოლა",
+      stamps: [["AI_VERIFY", "2026-09-26"], ["AI_DATA", "2026-09-19"]] },
+  ];
+  let n = 1;
+  for (const p of people) {
+    const st = newStudentRecord(p, n++);
+    st.stamps = p.stamps.map(([code, d]) => ({ code, earnedAt: d, earnedThrough: TIER[SKILL[code].tier].earned }));
+    state.students.push(st);
+    await createVersion(st, "პასპორტის პირველადი გაცემა", "2026-10-01T09:00:00.000Z");
+  }
+  const g = student("giorgi-kapanadze");
+  g.stamps.push({ code: "AGENTIC_AI", earnedAt: "2026-10-09", earnedThrough: TIER.AI_ADVANCED_SKILL.earned });
+  await createVersion(g, "დაემატა შტამპი: Prompt Engineering & Agentic AI", "2026-10-10T12:30:00.000Z");
+  g.stamps.push({ code: "AI_ETHICS", earnedAt: "2026-10-13", earnedThrough: TIER.AI_ADVANCED_SKILL.earned });
+  await createVersion(g, "დაემატა შტამპი: AI Governance, Ethics & Regulation", "2026-10-14T10:15:00.000Z");
+  save();
+}
+
+/* =========================================================
+   7. Rendering helpers
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const short = h => h ? h.slice(0, 10) + "…" + h.slice(-6) : "—";
+const fmt = iso => new Date(iso).toLocaleString("ka-GE", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+const fullName = s => s.firstName + " " + s.lastName;
+function stampIcon(tier) {
+  if (tier === "AI_SKILL") return '<div class="stamp st-skill" role="img" aria-label="AI Skill"><span>AI SKILL</span></div>';
+  if (tier === "AI_APPLIED_SKILL") return '<div class="stamp st-applied" role="img" aria-label="AI Applied Skill"><span>AI APPLIED SKILL<br>APPLIED LEARNING</span></div>';
+  return '<div class="stamp st-adv" role="img" aria-label="AI Advanced Skill">AI<br>ADVANCED<br>SKILL</div>';
+}
+const dot = t => '<span class="dot ' + t + '" title="' + TIER[t].label + '"></span>';
+let toastTimer;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3400); }
+const pageFoot = (id, n) => '<div class="page-no">' + n + ' / 4</div><div class="foot-l">AI SKILLS<br>DIGITAL PASSPORT</div><div class="foot-r">PASSPORT ID: ' + esc(id) + '</div>';
+const studentOptions = sel => state.students.map(s => '<option value="' + s.slug + '"' + (s.slug === sel ? " selected" : "") + '>' + esc(fullName(s)) + '</option>').join("");
+async function copyText(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg || "დაკოპირდა"); }
+  catch (e) { toast("კოპირება ვერ მოხერხდა. მონიშნეთ ტექსტი და დააკოპირეთ ხელით."); }
+}
+function downloadFile(name, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function verifyLink(hash) {
+  if (IN_FRAME) return null;
+  return location.href.split("#")[0] + "#v" + hash;
+}
+function openBadges(st, v) {
+  const d = v.data;
+  return d.stamps.map(s => ({
+    "@context": ["https://www.w3.org/ns/credentials/v2", "https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json"],
+    id: "urn:btu:passport:" + d.passportId + ":" + s.code,
+    type: ["VerifiableCredential", "OpenBadgeCredential"],
+    issuer: { id: "https://btu.edu.ge", type: ["Profile"], name: ISSUER },
+    validFrom: s.earnedAt + "T00:00:00Z",
+    name: s.skill,
+    credentialSubject: {
+      type: ["AchievementSubject"],
+      identifier: [{ type: "IdentityObject", identityHash: d.passportId, identityType: "identifier", hashed: false }],
+      achievement: {
+        id: "https://btu.edu.ge/ai-passport/skills/" + s.code,
+        type: ["Achievement"],
+        achievementType: s.tier === "AI_ADVANCED_SKILL" ? "Course" : s.tier === "AI_APPLIED_SKILL" ? "Assignment" : "Competency",
+        name: s.skill,
+        description: s.description,
+        criteria: { narrative: TIER[s.tier].label + " · " + s.earnedThrough + " · " + s.source },
+      },
+    },
+    evidence: [{ type: ["Evidence"], name: "BTU AI Skills Passport v" + d.version, description: "SHA-256: " + v.hash }],
+  }));
+}
+
+/* =========================================================
+   8. Passport tab
+   ========================================================= */
+function tierCounts(stamps) { const c = { AI_SKILL: 0, AI_APPLIED_SKILL: 0, AI_ADVANCED_SKILL: 0 }; stamps.forEach(s => c[s.tier]++); return c; }
+
+function renderPassport() {
+  const el = $("panel-passport");
+  const st = student(ui.student);
+  const v = activeVersion(st);
+  const d = v.data;
+  const shown = ui.shared ? d.stamps.filter(s => !st.hidden.includes(s.code)) : d.stamps;
+  const empty = Math.max(0, 10 - shown.length);
+  const counts = tierCounts(shown);
+  const perTierTotal = t => SKILLS.filter(s => s.tier === t).length;
+  if (ui.cmpA == null || !st.versions.some(x => x.versionNo === ui.cmpA)) ui.cmpA = Math.max(1, v.versionNo - 1);
+  if (ui.cmpB == null || !st.versions.some(x => x.versionNo === ui.cmpB)) ui.cmpB = v.versionNo;
+  const vOpts = sel => st.versions.map(x => '<option value="' + x.versionNo + '"' + (x.versionNo === sel ? " selected" : "") + '>v' + x.versionNo + '</option>').join("");
+  const A = st.versions.find(x => x.versionNo === ui.cmpA), B = st.versions.find(x => x.versionNo === ui.cmpB);
+  const cmp = A && B ? diff(A.data, B.data) : { added: [], removed: [] };
+  const cmpHtml = (cmp.added.length || cmp.removed.length)
+    ? cmp.added.map(s => '<div class="add small">+ ' + esc(s.skill) + '</div>').join("") + cmp.removed.map(s => '<div class="rem small">− ' + esc(s.skill) + '</div>').join("")
+    : '<div class="muted small">ამ ორ ვერსიას შორის შტამპები არ განსხვავდება.</div>';
+
+  const versions = [...st.versions].reverse().map((ver, i, arr) => {
+    const older = arr[i + 1];
+    const df = older ? diff(older.data, ver.data) : null;
+    return '<div class="ver' + (ver.status === "ACTIVE" ? " active" : "") + '">' +
+      '<div class="head"><span>v' + ver.versionNo + ' · ' + fmt(ver.createdAt) + '</span><span class="pill ' + ver.status + '">' + ver.status + '</span></div>' +
+      '<div>' + esc(ver.changelog) + '</div>' +
+      (df ? df.added.map(s => '<div class="add">+ ' + esc(s.skill) + '</div>').join("") : "") +
+      '<div class="mono muted">' + short(ver.hash) + ' · ბლოკი #' + ver.block + '</div>' +
+      '<div><button class="linkish" data-verify="' + ver.hash + '">ამ ვერსიის შემოწმება →</button></div></div>';
+  }).join("");
+
+  const pageUrl = IN_FRAME ? "https://btu.edu.ge" : location.href.split("#")[0];
+  const linkedIn = "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME" +
+    "&name=" + encodeURIComponent("AI Skills Digital Passport") +
+    "&organizationName=" + encodeURIComponent("Business and Technology University") +
+    "&issueYear=" + d.issuedAt.slice(0, 4) + "&issueMonth=" + Number(d.issuedAt.slice(5, 7)) +
+    "&certUrl=" + encodeURIComponent(pageUrl) + "&certId=" + encodeURIComponent(d.passportId);
+
+  el.innerHTML =
+    '<div class="layout">' +
+    '<div style="min-width:0">' +
+      '<article class="paper" aria-label="ყდა">' +
+        (ui.shared ? '<span class="shared-flag">SHARED VIEW · ' + shown.length + ' / ' + d.stamps.length + ' STAMPS</span>' : "") +
+        '<div class="stars" aria-hidden="true">✱<br>✱<br>✱</div>' +
+        '<h2 class="p-title">AI SKILLS</h2><p class="p-sub">DIGITAL PASSPORT</p>' +
+        '<div class="cover-fields">' +
+          '<div>NAME:<span>' + esc(d.holder.firstName) + '</span></div>' +
+          '<div>DATE OF ISSUE:<span>' + esc(d.issuedAt.slice(0, 10)) + '</span></div>' +
+          '<div>SURNAME:<span>' + esc(d.holder.lastName) + '</span></div>' +
+          '<div>VERSION:<span>v' + d.version + ' · ' + shown.length + ' stamps</span></div>' +
+        '</div>' +
+        '<div class="tier-bars" aria-label="შტამპები ტიპების მიხედვით">' +
+          TIERS.map(t => '<div class="tbar"><span>' + TIER[t].label.toUpperCase() + '</span><div class="track"><div class="fill" style="width:' + (counts[t] / perTierTotal(t) * 100) + '%;background:' + TIER[t].color + '"></div></div><span class="n">' + counts[t] + '/' + perTierTotal(t) + '</span></div>').join("") +
+        '</div>' +
+        '<div class="cover-stamps">' +
+          '<span class="cs a">ISSUED BY BUSINESS AND TECHNOLOGY UNIVERSITY</span>' +
+          '<span class="cs b">BLOCKCHAIN VERIFIED</span>' +
+          '<div class="qrbox"><div id="qr"></div><small>SCAN TO VERIFY</small></div>' +
+        '</div>' + pageFoot(d.passportId, 1) +
+      '</article>' +
+      '<article class="paper" aria-label="About">' +
+        '<div class="about"><div>' +
+          '<h3>ABOUT THE AI SKILLS DIGITAL PASSPORT</h3>' +
+          '<p>The BTU AI Skills Digital Passport is a personal and verifiable record of AI competencies developed throughout the learning experience.</p>' +
+          '<p>AI skills can be earned through workshops, bootcamps, hackathons and academic courses. Each stamp is issued by Business and Technology University and anchored on the blockchain.</p>' +
+          '<p>Participation is voluntary. The passport grows as new competencies are added, during studies and after graduation.</p>' +
+        '</div><div>' +
+          '<h4>UNDERSTANDING AI SKILLS STAMPS</h4>' +
+          TIERS.map(k => '<div class="tier-row">' + stampIcon(k) + '<div><b>' + TIER[k].label.toUpperCase() + ' · ' + TIER[k].sub.toUpperCase() + '</b>' + esc(TIER[k].ka) + '</div></div>').join("") +
+          '<b style="font-family:var(--f-display);font-size:12px">HOW THE PASSPORT GROWS</b>' +
+          '<div class="grow"><span>LEARN</span><i>→</i><span>DEMONSTRATE</span><i>→</i><span>EARN</span><i>→</i><span>VERIFY</span><i>→</i><span>BUILD YOUR AI PROFILE</span></div>' +
+        '</div></div>' + pageFoot(d.passportId, 2) +
+      '</article>' +
+      '<article class="paper" aria-label="Verified AI Skillset">' +
+        '<h3 class="sec-h">VERIFIED AI SKILLSET</h3><p class="sec-s">Collection of BTU-verified AI Skill Stamps</p>' +
+        '<div class="sgrid">' +
+          shown.map(s => '<div class="scell' + (ui.lastAdded === s.code ? " new" : "") + '"><span class="d">' + esc(s.earnedAt) + '</span>' + stampIcon(s.tier) + '<b>' + esc(s.skill) + '</b><span class="t">' + TIER[s.tier].label + '</span></div>').join("") +
+          Array.from({ length: empty }, () => '<div class="scell" aria-hidden="true"></div>').join("") +
+        '</div>' + pageFoot(d.passportId, 3) +
+      '</article>' +
+      '<article class="paper" aria-label="Detailed information">' +
+        '<h3 class="sec-h">AI SKILLS DETAILED INFORMATION</h3><p class="sec-s">Detailed record of verified AI skills and learning experiences</p>' +
+        (shown.length ? '<div class="tbl-wrap"><table class="det"><thead><tr><th>STAMP TYPE</th><th>SKILL</th><th>DESCRIPTION</th><th>EARNED THROUGH</th><th>DATE EARNED</th></tr></thead><tbody>' +
+          shown.map(s => '<tr><td>' + stampIcon(s.tier) + '</td><td class="sk">' + esc(s.skill) + '</td><td>' + esc(s.description) + '<br><span style="color:rgba(17,17,17,.55)">' + esc(s.source) + '</span></td><td>' + esc(s.earnedThrough) + '</td><td class="dt">' + esc(s.earnedAt) + '</td></tr>').join("") +
+        '</tbody></table></div>' : '<p>შტამპები ჯერ არ არის. პირველი შტამპი BTU ადმინის ჩანართიდან მიანიჭეთ.</p>') + pageFoot(d.passportId, 4) +
+      '</article>' +
+    '</div>' +
+    '<aside class="side">' +
+      '<label class="f" for="pick">სტუდენტი<select id="pick">' + studentOptions(st.slug) + '</select></label>' +
+      '<div class="kv"><span>Passport ID</span><span class="mono">' + esc(d.passportId) + '</span><span>ფაკულტეტი</span><span>' + esc(st.faculty) + '</span><span>Hash</span><span class="mono">' + short(v.hash) + '</span></div>' +
+      '<div class="row"><button class="btn primary sm" id="go-verify">ვერიფიკაცია</button><button class="btn sm" id="go-json">გაყალბების ტესტი</button></div>' +
+      '<hr class="sep">' +
+      '<label class="row small" for="shared-toggle" style="gap:8px"><input type="checkbox" id="shared-toggle"' + (ui.shared ? " checked" : "") + '> დამსაქმებლისთვის გაზიარებული ხედი</label>' +
+      '<details class="box"' + (ui.shared ? " open" : "") + '><summary>რომელი შტამპები გამოჩნდეს</summary><div class="vis-list">' +
+        (d.stamps.length ? d.stamps.map(s => '<label for="vis-' + s.code + '"><input type="checkbox" id="vis-' + s.code + '" data-vis="' + s.code + '"' + (st.hidden.includes(s.code) ? "" : " checked") + '> ' + esc(s.skill) + '</label>').join("") : '<span class="muted">შტამპები არ არის.</span>') +
+        '<span class="muted small">დამალული შტამპი ხედიდან ქრება, მაგრამ ვერიფიკაცია მაინც სრული ვერსიის hash-ით ხდება.</span>' +
+      '</div></details>' +
+      '<details class="box"><summary>ექსპორტი და გაზიარება</summary><div class="form">' +
+        '<a class="btn sm" href="' + linkedIn + '" target="_blank" rel="noopener">LinkedIn-ზე დამატება ↗</a>' +
+        '<button class="btn sm" id="copy-json">პასპორტის JSON-ის კოპირება</button>' +
+        '<button class="btn sm" id="copy-ob">Open Badges 3.0 ექსპორტი (კოპირება)</button>' +
+        (IN_FRAME ? "" : '<button class="btn sm" id="dl-json">JSON ფაილის ჩამოტვირთვა</button><button class="btn sm" id="print">ბეჭდვა / PDF</button>') +
+        '<span class="muted small">Open Badges 3.0 და W3C Verifiable Credentials ციფრული სერტიფიკატების საერთაშორისო სტანდარტებია.</span>' +
+      '</div></details>' +
+      '<details class="box"><summary>ვერსიების შედარება</summary><div class="form">' +
+        '<div class="row" style="flex-wrap:nowrap"><select id="cmp-a" aria-label="ძველი ვერსია">' + vOpts(ui.cmpA) + '</select><span>→</span><select id="cmp-b" aria-label="ახალი ვერსია">' + vOpts(ui.cmpB) + '</select></div>' +
+        cmpHtml +
+      '</div></details>' +
+      '<h3>ვერსიების ისტორია</h3>' + versions +
+    '</aside></div>';
+
+  const qrEl = $("qr");
+  const qrText = verifyLink(v.hash) || ("BTU-AI-PASSPORT|" + d.passportId + "|v" + d.version + "|" + v.hash);
+  if (window.QRCode) {
+    try { new QRCode(qrEl, { text: qrText, width: 104, height: 104, colorDark: "#111111", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); }
+    catch (e) { qrEl.innerHTML = '<span class="mono" style="font-size:9px">' + short(v.hash) + '</span>'; }
+  } else { qrEl.innerHTML = '<span class="mono" style="font-size:9px">' + short(v.hash) + '</span>'; }
+
+  $("pick").onchange = e => { ui.student = e.target.value; ui.lastAdded = null; ui.cmpA = ui.cmpB = null; renderPassport(); };
+  $("go-verify").onclick = () => openVerifyHash(v.hash);
+  $("go-json").onclick = () => { verifyState.mode = "json"; verifyState.json = JSON.stringify(v.data, null, 2); verifyState.result = null; setTab("verify"); };
+  $("shared-toggle").onchange = e => { ui.shared = e.target.checked; renderPassport(); };
+  el.querySelectorAll("[data-vis]").forEach(c => c.onchange = () => {
+    const code = c.dataset.vis;
+    st.hidden = c.checked ? st.hidden.filter(x => x !== code) : [...st.hidden, code];
+    save(); ui.shared = true; renderPassport();
+  });
+  $("copy-json").onclick = () => copyText(JSON.stringify(v.data, null, 2), "პასპორტის JSON დაკოპირდა");
+  $("copy-ob").onclick = () => copyText(JSON.stringify(openBadges(st, v), null, 2), "Open Badges 3.0 JSON დაკოპირდა (" + d.stamps.length + " credential)");
+  if ($("dl-json")) $("dl-json").onclick = () => downloadFile("passport-" + st.slug + "-v" + v.versionNo + ".json", JSON.stringify(v.data, null, 2));
+  if ($("print")) $("print").onclick = () => window.print();
+  $("cmp-a").onchange = e => { ui.cmpA = Number(e.target.value); renderPassport(); };
+  $("cmp-b").onchange = e => { ui.cmpB = Number(e.target.value); renderPassport(); };
+  el.querySelectorAll("[data-verify]").forEach(b => b.onclick = () => openVerifyHash(b.dataset.verify));
+}
+
+/* =========================================================
+   9. Students tab
+   ========================================================= */
+function renderStudents() {
+  const el = $("panel-students");
+  const q = ui.search.trim().toLowerCase();
+  const list = state.students.filter(s => {
+    const v = activeVersion(s);
+    const text = (fullName(s) + " " + s.email + " " + s.passportId + " " + s.faculty + " " + v.data.stamps.map(x => x.skill).join(" ")).toLowerCase();
+    return (!q || text.includes(q)) && (!ui.tierFilter || v.data.stamps.some(x => x.tier === ui.tierFilter));
+  });
+  el.innerHTML =
+    '<div class="layout"><div class="card" style="min-width:0">' +
+      '<h2 class="h">სტუდენტები და პასპორტები</h2><p class="lead">ძებნა სახელით, ელფოსტით, Passport ID-ით ან უნარით.</p>' +
+      '<div class="form">' +
+        '<label class="f" for="s-search">ძებნა<input id="s-search" value="' + esc(ui.search) + '" placeholder="მაგ. Machine Learning ან ნინო"></label>' +
+        '<div class="chips" role="group" aria-label="ფილტრი ტიპის მიხედვით">' +
+          '<button class="chip" data-tf="" aria-pressed="' + (!ui.tierFilter) + '">ყველა</button>' +
+          TIERS.map(t => '<button class="chip" data-tf="' + t + '" aria-pressed="' + (ui.tierFilter === t) + '">' + TIER[t].label + '</button>').join("") +
+        '</div>' +
+      '</div>' +
+      '<div class="tbl-wrap" style="margin-top:14px"><table class="list"><thead><tr><th>სტუდენტი</th><th>Passport ID</th><th>შტამპები</th><th>ვერსია</th><th></th></tr></thead><tbody>' +
+        (list.length ? list.map(s => { const v = activeVersion(s); return '<tr><td><b>' + esc(fullName(s)) + '</b><br><span class="muted small">' + esc(s.faculty) + '</span></td>' +
+          '<td class="mono">' + esc(s.passportId) + '</td>' +
+          '<td><div class="mini-stamps">' + (v.data.stamps.length ? v.data.stamps.map(x => dot(x.tier)).join("") : '<span class="muted small">—</span>') + '</div><span class="muted small">' + v.data.stamps.length + ' შტამპი</span></td>' +
+          '<td class="num">v' + v.versionNo + ' <span class="pill ' + v.status + '">' + v.status + '</span></td>' +
+          '<td><button class="btn sm" data-open="' + s.slug + '">გახსნა</button></td></tr>'; }).join("")
+          : '<tr><td colspan="5" class="muted">ვერაფერი მოიძებნა. სცადეთ სხვა სიტყვა ან მოხსენით ფილტრი.</td></tr>') +
+      '</tbody></table></div>' +
+      '<div class="legend" style="margin-top:12px">' + TIERS.map(t => '<span>' + dot(t) + TIER[t].label + '</span>').join("") + '</div>' +
+    '</div>' +
+    '<form class="side form" id="new-student" novalidate>' +
+      '<h3>ახალი სტუდენტის რეგისტრაცია</h3>' +
+      '<p class="muted small" style="margin:0">სისტემა ავტომატურად ანიჭებს Passport ID-ს და გასცემს პასპორტის პირველ ვერსიას.</p>' +
+      '<label class="f" for="n-first">სახელი<input id="n-first" required></label>' +
+      '<label class="f" for="n-last">გვარი<input id="n-last" required></label>' +
+      '<label class="f" for="n-email">ელფოსტა<input id="n-email" type="email" placeholder="name.surname@btu.edu.ge" required></label>' +
+      '<label class="f" for="n-fac">სკოლა<select id="n-fac"><option>ბიზნესის სკოლა</option><option>ტექნოლოგიების სკოლა</option><option>სხვა</option></select></label>' +
+      '<p class="rem small" id="n-err" hidden></p>' +
+      '<button class="btn primary" type="submit">რეგისტრაცია და პასპორტის გაცემა</button>' +
+    '</form></div>';
+
+  const search = $("s-search");
+  search.oninput = () => { ui.search = search.value; const pos = search.selectionStart; renderStudents(); const s2 = $("s-search"); s2.focus(); s2.setSelectionRange(pos, pos); };
+  el.querySelectorAll("[data-tf]").forEach(b => b.onclick = () => { ui.tierFilter = b.dataset.tf; renderStudents(); });
+  el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { ui.student = b.dataset.open; ui.shared = false; setTab("passport"); });
+  $("new-student").onsubmit = async e => {
+    e.preventDefault();
+    const first = $("n-first").value.trim(), last = $("n-last").value.trim(), email = $("n-email").value.trim().toLowerCase();
+    const err = $("n-err");
+    const fail = m => { err.textContent = m; err.hidden = false; };
+    if (!first || !last) return fail("შეავსეთ სახელი და გვარი.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail("ელფოსტა არასწორია. მაგალითი: name.surname@btu.edu.ge");
+    if (state.students.some(s => s.email === email)) return fail("ამ ელფოსტით სტუდენტი უკვე რეგისტრირებულია.");
+    const st = newStudentRecord({ firstName: first, lastName: last, email, faculty: $("n-fac").value }, state.students.length + 1);
+    let base = st.slug || "student", n = 2;
+    while (state.students.some(s => s.slug === st.slug)) st.slug = base + "-" + n++;
+    state.students.push(st);
+    await createVersion(st, "პასპორტის პირველადი გაცემა");
+    save();
+    toast(fullName(st) + ": გაიცა " + st.passportId);
+    ui.student = st.slug; ui.shared = false; setTab("passport");
+  };
+}
+
+/* =========================================================
+   10. Admin tab (single stamp, CSV import, revoke)
+   ========================================================= */
+const CSV_SAMPLE = [
+  "email,skill_code,date,earned_through",
+  "nino.beridze@btu.edu.ge,AI_PROTO,2026-10-15,AI Solution Prototype Bootcamp",
+  "ana.maisuradze@btu.edu.ge,PROMPT_PRO,2026-10-15,Workshop",
+  "saba.gelashvili@btu.edu.ge,PROMPT_PRO,2026-10-15,Workshop",
+  "unknown.person@btu.edu.ge,PROMPT_PRO,2026-10-15,Workshop",
+].join("\n");
+let csvState = { text: CSV_SAMPLE, report: null };
+
+async function importCsv(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length && /email|passport/i.test(lines[0])) lines.shift();
+  const report = [], touched = new Map();
+  for (const [i, line] of lines.entries()) {
+    const [who, code, date, through] = line.split(",").map(x => (x || "").trim());
+    const st = state.students.find(s => s.email === (who || "").toLowerCase() || s.passportId === who);
+    const n = "ხაზი " + (i + 2) + ": ";
+    if (!st) { report.push({ ok: false, t: n + "სტუდენტი ვერ მოიძებნა (" + who + ")" }); continue; }
+    if (!SKILL[code]) { report.push({ ok: false, t: n + "უცნობი უნარის კოდი (" + code + ")" }); continue; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) { report.push({ ok: false, t: n + "თარიღი უნდა იყოს YYYY-MM-DD" }); continue; }
+    if (st.stamps.some(s => s.code === code)) { report.push({ ok: false, t: n + fullName(st) + "-ს ეს შტამპი უკვე აქვს" }); continue; }
+    st.stamps.push({ code, earnedAt: date, earnedThrough: through || TIER[SKILL[code].tier].earned });
+    touched.set(st.slug, (touched.get(st.slug) || []).concat(SKILL[code].name));
+    report.push({ ok: true, t: n + fullName(st) + " ← " + SKILL[code].name });
+  }
+  for (const [slug, names] of touched) {
+    const st = student(slug);
+    const v = await createVersion(st, "CSV იმპორტი: " + names.join(", "));
+    report.push({ ok: true, t: fullName(st) + ": შეიქმნა v" + v.versionNo + " (ბლოკი #" + v.block + ")" });
+  }
+  save();
+  return report;
+}
+
+function renderAdmin() {
+  const el = $("panel-admin");
+  const st = student(ui.student);
+  const owned = new Set(st.stamps.map(s => s.code));
+  const free = SKILLS.filter(s => !owned.has(s.code));
+  const today = new Date().toISOString().slice(0, 10);
+  const cur = activeVersion(st);
+  el.innerHTML =
+    '<div class="grid2">' +
+    '<form class="card form" id="stamp-form" novalidate>' +
+      '<h3>შტამპის მინიჭება</h3>' +
+      '<p class="muted small" style="margin:0">მინიჭებისას სისტემა ავტომატურად ქმნის პასპორტის ახალ ვერსიას, ითვლის SHA-256 hash-ს და წერს მას ბლოკში. წინა ვერსია SUPERSEDED ხდება.</p>' +
+      '<label class="f" for="a-student">სტუდენტი<select id="a-student">' + state.students.map(s => '<option value="' + s.slug + '"' + (s.slug === st.slug ? " selected" : "") + '>' + esc(fullName(s)) + ' · ' + s.stamps.length + ' შტამპი</option>').join("") + '</select></label>' +
+      (free.length ? '<label class="f" for="a-skill">უნარი<select id="a-skill">' +
+        TIERS.map(t => '<optgroup label="' + TIER[t].label + '">' + free.filter(s => s.tier === t).map(s => '<option value="' + s.code + '">' + esc(s.name) + '</option>').join("") + '</optgroup>').join("") +
+        '</select></label>' : '<p>ამ სტუდენტს ყველა შტამპი უკვე აქვს.</p>') +
+      '<label class="f" for="a-through">როგორ მიიღო (Earned Through)<input id="a-through"></label>' +
+      '<label class="f" for="a-date">თარიღი<input type="date" id="a-date" value="' + today + '"></label>' +
+      '<label class="f" for="a-desc">აღწერა (არასავალდებულო)<input id="a-desc" placeholder="ნაგულისხმევად კატალოგის აღწერა"></label>' +
+      '<div class="row"><button class="btn primary" type="submit" id="a-submit"' + (free.length ? "" : " disabled") + '>შტამპის მინიჭება</button></div>' +
+    '</form>' +
+    '<div class="card form">' +
+      '<h3>მასობრივი იმპორტი (CSV)</h3>' +
+      '<p class="muted small" style="margin:0">მაგ. ვორქშოფის დასწრების სია. ფორმატი: email (ან Passport ID), skill_code, date, earned_through. თითო სტუდენტს ერთი ახალი ვერსია ექმნება.</p>' +
+      '<label class="f" for="csv-text">CSV<textarea id="csv-text" spellcheck="false" style="min-height:150px">' + esc(csvState.text) + '</textarea></label>' +
+      '<label class="f" for="csv-file">ან ატვირთეთ .csv ფაილი<input type="file" id="csv-file" accept=".csv,text/csv"></label>' +
+      '<div class="row"><button class="btn primary" id="csv-run" type="button">იმპორტი</button><button class="btn sm" id="csv-codes" type="button">უნარების კოდები</button></div>' +
+      '<div id="csv-codes-list" class="mono" hidden>' + SKILLS.map(s => s.code + " · " + esc(s.name)).join("<br>") + '</div>' +
+      (csvState.report ? '<div class="csv-out">' + csvState.report.map(r => '<div class="' + (r.ok ? "add" : "rem") + '">' + (r.ok ? "✓ " : "✗ ") + esc(r.t) + '</div>').join("") + '</div>' : "") +
+    '</div>' +
+    '<div class="card form">' +
+      '<h3>მიმდინარე ვერსია</h3>' +
+      '<div class="kv"><span>სტუდენტი</span><span>' + esc(fullName(st)) + '</span><span>ვერსია</span><span>v' + cur.versionNo + ' <span class="pill ' + cur.status + '">' + cur.status + '</span></span><span>Hash</span><span class="mono">' + esc(cur.hash) + '</span><span>ბლოკი</span><span>#' + cur.block + '</span></div>' +
+      '<h3 style="margin-top:6px">ვერსიის გაუქმება</h3>' +
+      '<p class="muted small" style="margin:0">როცა შტამპი შეცდომით მიენიჭა: ბლოკჩეინზე ემატება REVOKE ჩანაწერი და ეს hash აღარ ვერიფიცირდება.</p>' +
+      (ui.confirmRevoke
+        ? '<div class="confirm">გააუქმოთ v' + cur.versionNo + '? ეს ჩანაწერი ბლოკჩეინიდან ვერ წაიშლება.<div class="row"><button class="btn danger" id="r-yes" type="button">გაუქმება</button><button class="btn" id="r-no" type="button">დაბრუნება</button></div></div>'
+        : '<div class="row"><button class="btn danger" id="r-ask" type="button"' + (cur.status === "ACTIVE" ? "" : " disabled") + '>v' + cur.versionNo + '-ის გაუქმება</button></div>') +
+    '</div>' +
+    '<div class="card form">' +
+      '<h3>დემოს თავიდან დაწყება</h3>' +
+      '<p class="muted small" style="margin:0">აღადგენს 6 სატესტო სტუდენტს და ბლოკჩეინს საწყის მდგომარეობაში. დამატებული სტუდენტები და შტამპები წაიშლება.</p>' +
+      '<div class="row"><button class="btn" id="reset" type="button">საწყისი მონაცემების აღდგენა</button></div>' +
+    '</div></div>';
+
+  const skillSel = $("a-skill"), through = $("a-through");
+  const syncThrough = () => { if (skillSel) through.value = TIER[SKILL[skillSel.value].tier].earned; };
+  syncThrough();
+  if (skillSel) skillSel.onchange = syncThrough;
+  $("a-student").onchange = e => { ui.student = e.target.value; ui.confirmRevoke = false; renderAdmin(); };
+  $("stamp-form").onsubmit = async e => {
+    e.preventDefault();
+    if (!skillSel) return;
+    const btn = $("a-submit"); btn.disabled = true; btn.textContent = "იწერება ბლოკში…";
+    const code = skillSel.value;
+    st.stamps.push({ code, earnedAt: $("a-date").value || today, earnedThrough: through.value.trim() || TIER[SKILL[code].tier].earned, description: $("a-desc").value.trim() || undefined });
+    await new Promise(r => setTimeout(r, 650));
+    const v = await createVersion(st, "დაემატა შტამპი: " + SKILL[code].name);
+    save();
+    ui.lastAdded = code; ui.shared = false;
+    toast("შეიქმნა v" + v.versionNo + " · ბლოკი #" + v.block);
+    setTab("passport");
+  };
+  $("csv-text").oninput = e => { csvState.text = e.target.value; };
+  $("csv-file").onchange = async e => { const f = e.target.files[0]; if (!f) return; csvState.text = await f.text(); csvState.report = null; renderAdmin(); };
+  $("csv-codes").onclick = () => { const l = $("csv-codes-list"); l.hidden = !l.hidden; };
+  $("csv-run").onclick = async () => {
+    const b = $("csv-run"); b.disabled = true; b.textContent = "მუშავდება…";
+    csvState.report = await importCsv($("csv-text").value);
+    const ok = csvState.report.filter(r => r.ok).length;
+    toast("იმპორტი დასრულდა");
+    renderAdmin();
+    if (!ok) return;
+  };
+  if ($("r-ask")) $("r-ask").onclick = () => { ui.confirmRevoke = true; renderAdmin(); };
+  if ($("r-no")) $("r-no").onclick = () => { ui.confirmRevoke = false; renderAdmin(); };
+  if ($("r-yes")) $("r-yes").onclick = async () => {
+    await addBlock("REVOKE", cur.hash); cur.status = "REVOKED"; ui.confirmRevoke = false;
+    logAction(fullName(st) + " · v" + cur.versionNo + " გაუქმდა (REVOKE)");
+    save(); toast("v" + cur.versionNo + " გაუქმდა"); renderAdmin();
+  };
+  $("reset").onclick = async () => {
+    await seed();
+    ui = { ...ui, student: "giorgi-kapanadze", lastAdded: null, confirmRevoke: false, shared: false, cmpA: null, cmpB: null };
+    verifyState = freshVerify(); csvState = { text: CSV_SAMPLE, report: null };
+    toast("მონაცემები აღდგა"); renderAdmin();
+  };
+}
+
+/* =========================================================
+   11. Employer tab: vacancy matching
+   ========================================================= */
+const JOB_SAMPLE = "ვეძებთ Junior Marketing Analyst-ს. მოთხოვნები: მარკეტინგული კამპანიების დაგეგმვა AI ინსტრუმენტებით, კონტენტის შექმნა ChatGPT-ით და prompt-ების წერა, Google Analytics და KPI-ების ანალიზი, მონაცემებთან მუშაობა Excel-ში, სამუშაო პროცესების ავტომატიზაცია.";
+let jobState = { text: JOB_SAMPLE, picked: null };
+function detectSkills(text) {
+  const t = " " + text.toLowerCase().replace(/\s+/g, " ") + " ";
+  return SKILLS.filter(s => s.kw.some(k => t.includes(k))).map(s => s.code);
+}
+function renderEmployer() {
+  const el = $("panel-employer");
+  const required = jobState.picked || detectSkills(jobState.text);
+  const ranked = state.students.map(s => {
+    const v = activeVersion(s);
+    const visible = v.data.stamps.filter(x => !s.hidden.includes(x.code));
+    const has = new Set(visible.map(x => x.code));
+    const matched = required.filter(c => has.has(c));
+    return { s, v, matched, missing: required.filter(c => !has.has(c)), pct: required.length ? Math.round(matched.length / required.length * 100) : 0 };
+  }).sort((a, b) => b.pct - a.pct || b.matched.length - a.matched.length);
+  const band = p => p >= 70 ? "good" : p >= 40 ? "mid" : "low";
+
+  el.innerHTML =
+    '<div class="grid2">' +
+    '<div class="card form">' +
+      '<h2 class="h">ვაკანსიასთან შესაბამისობა</h2>' +
+      '<p class="lead" style="margin:0">ჩასვით ვაკანსიის ტექსტი. სისტემა საკვანძო სიტყვებით ამოიცნობს საჭირო AI უნარებს და აჩვენებს, რომელ სტუდენტს აქვს ისინი დადასტურებული. რეალურ ვერსიაში ამ ნაწილს LLM შეასრულებს.</p>' +
+      '<label class="f" for="job-text">ვაკანსიის აღწერა<textarea id="job-text" style="font-family:var(--f-body);font-size:14px;min-height:150px">' + esc(jobState.text) + '</textarea></label>' +
+      '<div class="row"><button class="btn primary" id="job-run" type="button">უნარების ამოცნობა</button><button class="btn sm" id="job-sample" type="button">მაგალითის ჩასმა</button></div>' +
+      '<div><b class="small">საჭირო უნარები (' + required.length + ')</b> <span class="muted small">დააჭირეთ ჩასართავად ან გამოსართავად</span></div>' +
+      '<div class="chips">' + SKILLS.map(s => '<button class="chip" type="button" data-req="' + s.code + '" aria-pressed="' + required.includes(s.code) + '">' + esc(s.name) + '</button>').join("") + '</div>' +
+    '</div>' +
+    '<div class="card">' +
+      '<h3>კანდიდატები</h3>' +
+      '<p class="muted small" style="margin:4px 0 0">დამალული შტამპები არ ითვლება. ქულა არის დადასტურებული საჭირო უნარების წილი.</p>' +
+      (required.length ? ranked.map(r =>
+        '<div class="match"><div class="ring" style="--p:' + r.pct + '"><span>' + r.pct + '%</span></div><div style="min-width:0">' +
+          '<div class="row" style="justify-content:space-between"><b>' + esc(fullName(r.s)) + '</b><span class="pill ' + band(r.pct) + '">' + r.matched.length + ' / ' + required.length + '</span></div>' +
+          (r.matched.length ? '<div class="add small">✓ ' + r.matched.map(c => esc(SKILL[c].name)).join(" · ") + '</div>' : "") +
+          (r.missing.length ? '<div class="muted small">აკლია: ' + r.missing.map(c => esc(SKILL[c].name)).join(" · ") + '</div>' : "") +
+          '<div class="row" style="margin-top:4px"><button class="linkish" data-open="' + r.s.slug + '">პასპორტი →</button><button class="linkish" data-check="' + r.v.hash + '">ვერიფიკაცია →</button></div>' +
+        '</div></div>').join("")
+        : '<p class="muted">აირჩიეთ ან ამოიცანით მინიმუმ ერთი უნარი.</p>') +
+    '</div></div>';
+
+  $("job-text").oninput = e => { jobState.text = e.target.value; };
+  $("job-run").onclick = () => { jobState.text = $("job-text").value; jobState.picked = null; renderEmployer(); };
+  $("job-sample").onclick = () => { jobState = { text: JOB_SAMPLE, picked: null }; renderEmployer(); };
+  el.querySelectorAll("[data-req]").forEach(b => b.onclick = () => {
+    const c = b.dataset.req, cur = jobState.picked || detectSkills(jobState.text);
+    jobState.picked = cur.includes(c) ? cur.filter(x => x !== c) : [...cur, c];
+    renderEmployer();
+  });
+  el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { ui.student = b.dataset.open; ui.shared = true; setTab("passport"); });
+  el.querySelectorAll("[data-check]").forEach(b => b.onclick = () => openVerifyHash(b.dataset.check));
+}
+
+/* =========================================================
+   12. Verify tab
+   ========================================================= */
+const freshVerify = () => ({ mode: "hash", input: "", json: "", result: null });
+let verifyState = freshVerify();
+const VIEW = {
+  VALID: ["✓ პასპორტი ნამდვილია", "გაცემულია BTU-ის მიერ. Hash ემთხვევა ბლოკჩეინზე ჩაწერილს."],
+  OUTDATED: ["ნამდვილია, მაგრამ მოძველებული ვერსიაა", "სტუდენტს უფრო ახალი ვერსია აქვს. ითხოვეთ მიმდინარე პასპორტი."],
+  REVOKED: ["ვერსია გაუქმებულია", "უნივერსიტეტმა ეს ვერსია გააუქმა."],
+  NOT_FOUND: ["✗ ვერიფიკაცია ვერ მოხერხდა", "ასეთი hash ბლოკჩეინზე არ არსებობს. დოკუმენტი შეცვლილია ან ყალბია."],
+};
+function openVerifyHash(h) { verifyState.input = h; verifyState.mode = "hash"; verifyState.result = null; setTab("verify"); runVerify(); }
+async function runVerify() {
+  if (verifyState.mode === "json") {
+    let data;
+    try { data = JSON.parse(verifyState.json); }
+    catch (e) { verifyState.result = { status: "NOT_FOUND", hash: "", parseError: true }; renderVerify(); return; }
+    verifyState.result = await verifyHash(await hashPassport(data));
+  } else {
+    verifyState.result = await verifyHash(verifyState.input);
+  }
+  logAction("ვერიფიკაცია: " + verifyState.result.status + (verifyState.result.student ? " · " + fullName(verifyState.result.student) : ""));
+  save();
+  renderVerify();
+}
+function renderVerify() {
+  const el = $("panel-verify");
+  const r = verifyState.result;
+  let res = '<div class="card muted">შედეგი აქ გამოჩნდება. ჩასვით hash ან პასპორტის JSON და დააჭირეთ „შემოწმებას“.</div>';
+  if (r) {
+    const [t, x] = VIEW[r.status];
+    const latest = r.student ? activeVersion(r.student) : null;
+    res = '<div class="result ' + r.status + '"><div class="big">' + (r.parseError ? "ტექსტი სწორი JSON არ არის" : t) + '</div><div>' + (r.parseError ? "შეამოწმეთ ბრჭყალები და მძიმეები." : x) + '</div>' +
+      (r.hash ? '<dl><dt>გამოთვლილი hash</dt><dd class="mono">' + esc(r.hash) + '</dd>' +
+        (r.student ? '<dt>მფლობელი</dt><dd>' + esc(fullName(r.student)) + '</dd><dt>Passport ID</dt><dd>' + esc(r.student.passportId) + ' · v' + r.version.versionNo + '</dd><dt>შტამპები</dt><dd>' + r.version.data.stamps.length + '</dd>' : "") +
+        (r.block ? '<dt>ბლოკი</dt><dd>#' + r.block.index + ' · ' + fmt(r.block.timestamp) + '</dd>' : "") + '</dl>' : "") +
+      (r.status === "OUTDATED" && latest ? '<div><button class="btn sm" id="v-latest">მიმდინარე ვერსიის (v' + latest.versionNo + ') შემოწმება</button></div>' : "") +
+      '</div>';
+  }
+  el.innerHTML =
+    '<div class="grid2">' +
+    '<div class="card form">' +
+      '<h2 class="h">პასპორტის ვერიფიკაცია</h2>' +
+      '<div class="chips" role="group" aria-label="შემოწმების ხერხი">' +
+        '<button class="chip" id="m-hash" type="button" aria-pressed="' + (verifyState.mode === "hash") + '">Hash / QR კოდით</button>' +
+        '<button class="chip" id="m-json" type="button" aria-pressed="' + (verifyState.mode === "json") + '">პასპორტის JSON-ით</button>' +
+      '</div>' +
+      (verifyState.mode === "hash"
+        ? '<label class="f" for="v-hash">პასპორტის hash (QR კოდში ჩაწერილი)<input id="v-hash" class="mono" value="' + esc(verifyState.input) + '" placeholder="64 სიმბოლო"></label>' +
+          '<div class="row"><button class="btn primary" id="v-run" type="button">შემოწმება</button><button class="btn sm" id="v-random" type="button">შემთხვევითი ყალბი hash</button></div>'
+        : '<p class="muted small" style="margin:0">ეს პასპორტის JSON-ია, ზუსტად ის, რასაც სტუდენტი დამსაქმებელს გადასცემს. შეცვალეთ ნებისმიერი სიმბოლო და ხელახლა შეამოწმეთ.</p>' +
+          '<label class="f" for="v-json">პასპორტის JSON<textarea id="v-json" spellcheck="false">' + esc(verifyState.json) + '</textarea></label>' +
+          '<div class="row"><button class="btn primary" id="v-run" type="button">შემოწმება</button><button class="btn sm" id="v-tamper" type="button">ავტომატურად გაყალბება</button><button class="btn sm" id="v-fill" type="button">მიმდინარე პასპორტის ჩასმა</button></div>' +
+          '<label class="f" for="v-file">ან ატვირთეთ .json ფაილი<input type="file" id="v-file" accept=".json,application/json"></label>') +
+    '</div>' +
+    '<div class="form">' + res +
+      '<div class="card small"><h3>როგორ მუშაობს</h3><p style="margin:6px 0 0">სისტემა JSON-ს კანონიკურ ფორმაში აქცევს (გასაღებები ანბანურად), ითვლის SHA-256-ს და ამ hash-ს ბლოკჩეინზე ეძებს. ერთი სიმბოლოს შეცვლაც სრულიად სხვა hash-ს იძლევა, ამიტომ ყალბი დოკუმენტი ვერ გაივლის.</p></div>' +
+    '</div></div>';
+
+  $("m-hash").onclick = () => { verifyState.mode = "hash"; verifyState.result = null; renderVerify(); };
+  $("m-json").onclick = () => { verifyState.mode = "json"; verifyState.result = null; if (!verifyState.json) verifyState.json = JSON.stringify(activeVersion(student(ui.student)).data, null, 2); renderVerify(); };
+  $("v-run").onclick = () => {
+    if (verifyState.mode === "hash") verifyState.input = $("v-hash").value; else verifyState.json = $("v-json").value;
+    runVerify();
+  };
+  if ($("v-random")) $("v-random").onclick = () => { const a = new Uint8Array(32); crypto.getRandomValues(a); verifyState.input = [...a].map(b => b.toString(16).padStart(2, "0")).join(""); runVerify(); };
+  if ($("v-latest")) $("v-latest").onclick = () => openVerifyHash(activeVersion(r.student).hash);
+  if ($("v-tamper")) $("v-tamper").onclick = () => {
+    try {
+      const d = JSON.parse($("v-json").value);
+      if (d.stamps && d.stamps[0]) d.stamps[0].earnedAt = "2025-01-15"; else d.holder.firstName += "ი";
+      verifyState.json = JSON.stringify(d, null, 2); verifyState.result = null; renderVerify();
+      toast("პირველი შტამპის თარიღი შეიცვალა: 2025-01-15. ახლა დააჭირეთ „შემოწმებას“.");
+    } catch (e) { toast("ჯერ ჩასვით სწორი JSON"); }
+  };
+  if ($("v-fill")) $("v-fill").onclick = () => { verifyState.json = JSON.stringify(activeVersion(student(ui.student)).data, null, 2); verifyState.result = null; renderVerify(); };
+  if ($("v-file")) $("v-file").onchange = async e => { const f = e.target.files[0]; if (!f) return; verifyState.json = await f.text(); runVerify(); };
+}
+
+/* =========================================================
+   13. Analytics tab
+   ========================================================= */
+function renderAnalytics() {
+  const el = $("panel-analytics");
+  const all = state.students.flatMap(s => activeVersion(s).data.stamps);
+  const versions = state.students.reduce((n, s) => n + s.versions.length, 0);
+  const perSkill = SKILLS.map(k => ({ k, n: all.filter(s => s.code === k.code).length })).sort((a, b) => b.n - a.n);
+  const maxSkill = Math.max(1, ...perSkill.map(x => x.n));
+  const counts = tierCounts(all);
+  const months = {};
+  all.forEach(s => { const m = s.earnedAt.slice(0, 7); months[m] = (months[m] || 0) + 1; });
+  const mKeys = Object.keys(months).sort();
+  const maxM = Math.max(1, ...Object.values(months));
+  const mName = k => new Date(k + "-01T00:00:00").toLocaleDateString("ka-GE", { month: "short", year: "numeric" });
+  el.innerHTML =
+    '<div class="form" style="gap:20px">' +
+    '<div class="tiles">' +
+      '<div class="tile"><b>' + state.students.length + '</b><span>პასპორტი</span></div>' +
+      '<div class="tile"><b>' + all.length + '</b><span>მინიჭებული შტამპი</span></div>' +
+      '<div class="tile"><b>' + versions + '</b><span>ვერსია სულ</span></div>' +
+      '<div class="tile"><b>' + state.ledger.length + '</b><span>ბლოკი ჯაჭვში</span></div>' +
+    '</div>' +
+    '<div class="grid2">' +
+      '<div class="card form"><h3>შტამპები უნარების მიხედვით</h3><div class="hbars">' +
+        perSkill.map(x => '<div class="hbar"><span class="lbl" title="' + esc(x.k.name) + '">' + dot(x.k.tier) + esc(x.k.name) + '</span><div class="track"><div class="fill" style="width:' + (x.n / maxSkill * 100) + '%"></div></div><span class="n">' + x.n + '</span></div>').join("") +
+      '</div><div class="legend">' + TIERS.map(t => '<span>' + dot(t) + TIER[t].label + ': ' + counts[t] + '</span>').join("") + '</div></div>' +
+      '<div class="form">' +
+        '<div class="card form"><h3>შტამპები თვეების მიხედვით</h3>' +
+          (mKeys.length ? '<div class="cols">' + mKeys.map(k => '<div class="col"><span class="v">' + months[k] + '</span><div class="bar" style="height:' + (months[k] / maxM * 120) + 'px"></div></div>').join("") + '</div>' +
+          '<div class="col-l">' + mKeys.map(k => '<span>' + esc(mName(k)) + '</span>').join("") + '</div>' : '<p class="muted">მონაცემები ჯერ არ არის.</p>') +
+        '</div>' +
+        '<div class="card form"><h3>ქმედებების ჟურნალი</h3><div class="log">' +
+          state.log.slice(0, 40).map(l => '<div><time>' + esc(fmt(l.at)) + '</time><span>' + esc(l.text) + '</span></div>').join("") +
+        '</div></div>' +
+      '</div>' +
+    '</div></div>';
+}
+
+/* =========================================================
+   14. Ledger tab
+   ========================================================= */
+let backup = null;
+async function renderLedger() {
+  const el = $("panel-ledger");
+  const bad = await checkChain();
+  const owner = h => { for (const s of state.students) { const v = s.versions.find(x => x.hash === h); if (v) return fullName(s) + " · v" + v.versionNo; } return "—"; };
+  const blocks = [...state.ledger].reverse().map((b, i, arr) =>
+    '<div class="block' + (bad.has(b.index) ? " broken" : "") + '">' +
+      '<div class="row" style="justify-content:space-between"><b>ბლოკი #' + b.index + ' · ' + b.action + '</b><span class="muted">' + fmt(b.timestamp) + '</span></div>' +
+      '<div class="kv"><span>პასპორტი</span><span>' + esc(owner(b.passportHash)) + '</span>' +
+      '<span>passportHash</span><span class="mono">' + esc(b.passportHash) + '</span>' +
+      '<span>prevHash</span><span class="mono">' + esc(b.prevHash) + '</span>' +
+      '<span>blockHash</span><span class="mono">' + esc(b.hash) + '</span></div>' +
+      (bad.has(b.index) ? '<b style="color:var(--bad)">ბლოკი არ ემთხვევა თავის hash-ს ან წინა ბლოკს</b>' : "") +
+    '</div>' + (i < arr.length - 1 ? '<div class="link" aria-hidden="true">↑ prevHash</div>' : "")
+  ).join("");
+  el.innerHTML =
+    '<div class="layout"><div class="chain" style="min-width:0">' + blocks + '</div>' +
+    '<aside class="side">' +
+      '<h3>ჯაჭვის მთლიანობა</h3>' +
+      '<div class="result ' + (bad.size ? "NOT_FOUND" : "VALID") + '"><div class="big">' + (bad.size ? "ჯაჭვი დაზიანებულია" : "ჯაჭვი მთელია") + '</div><div>' + state.ledger.length + ' ბლოკი' + (bad.size ? ", დაზიანებული: " + [...bad].map(i => "#" + i).join(", ") : "") + '</div></div>' +
+      '<p class="muted small" style="margin:0">ყოველი ბლოკი წინა ბლოკის hash-ს ინახავს. ერთი ძველი ჩანაწერის შეცვლაც ყველა მომდევნო კავშირს არღვევს, ამიტომ ისტორიას ვერავინ გადაწერს.</p>' +
+      (backup ? '<button class="btn" id="l-fix" type="button">ბლოკის აღდგენა</button>' : '<button class="btn danger" id="l-tamper" type="button">სცადეთ ბლოკ #1-ის შეცვლა</button>') +
+      '<hr class="sep"><h3>რეალურ ვერსიაში</h3><p class="muted small" style="margin:0">ბლოკების ნაცვლად გამოიყენება PassportRegistry smart contract Polygon Amoy ქსელზე: issue(hash), revoke(hash), verify(hash). ტრანზაქციები Polygonscan-ზე ჩანს.</p>' +
+    '</aside></div>';
+  if ($("l-tamper")) $("l-tamper").onclick = () => { const b = state.ledger[1] || state.ledger[0]; backup = { i: b.index, h: b.passportHash }; b.passportHash = b.passportHash.slice(0, -1) + (b.passportHash.endsWith("0") ? "1" : "0"); renderLedger(); };
+  if ($("l-fix")) $("l-fix").onclick = () => { state.ledger[backup.i].passportHash = backup.h; backup = null; renderLedger(); };
+}
+
+/* =========================================================
+   15. Tabs, theme, boot
+   ========================================================= */
+const RENDER = { passport: renderPassport, students: renderStudents, admin: renderAdmin, employer: renderEmployer, verify: renderVerify, analytics: renderAnalytics, ledger: renderLedger };
+function setTab(tab) {
+  if (backup) { state.ledger[backup.i].passportHash = backup.h; backup = null; }
+  ui.tab = tab;
+  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+  Object.keys(RENDER).forEach(t => $("panel-" + t).hidden = t !== tab);
+  if (tab === "admin") ui.confirmRevoke = false;
+  RENDER[tab]();
+  try { localStorage.setItem(STORE_KEY + ":tab", tab); } catch (e) {}
+}
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+
+const THEMES = ["system", "light", "dark"], THEME_KA = { system: "სისტემური", light: "ნათელი", dark: "მუქი" };
+function applyTheme(t) {
+  if (t === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  $("theme-btn").textContent = "თემა: " + THEME_KA[t];
+  try { localStorage.setItem(STORE_KEY + ":theme", t); } catch (e) {}
+}
+let theme = "system";
+try { theme = localStorage.getItem(STORE_KEY + ":theme") || "system"; } catch (e) {}
+applyTheme(theme);
+$("theme-btn").onclick = () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; applyTheme(theme); };
+
+(async () => {
+  const saved = load();
+  if (saved && saved.students && saved.ledger) { state = saved; state.log = state.log || []; state.students.forEach(s => { s.hidden = s.hidden || []; }); }
+  else await seed();
+  if (!student(ui.student)) ui.student = state.students[0].slug;
+  const h = location.hash.slice(1);
+  if (/^v[0-9a-f]{64}$/i.test(h)) { openVerifyHash(h.slice(1)); return; }
+  let tab = "passport";
+  try { tab = localStorage.getItem(STORE_KEY + ":tab") || "passport"; } catch (e) {}
+  setTab(RENDER[tab] ? tab : "passport");
+})();
+})();
+</script>
