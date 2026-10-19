@@ -219,6 +219,40 @@ details.box[open] summary { margin-bottom: 8px; }
 .vis-list { display: grid; gap: 6px; font-size: 13px; }
 .vis-list label { display: flex; gap: 8px; align-items: flex-start; }
 .csv-out { display: grid; gap: 2px; font-size: 13px; }
+.qitem { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 4px; font-size: 14px; }
+.warn-t { color: var(--warn); }
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; font-weight: 600; margin: 0 0 18px; }
+.flow span { background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; }
+.flow span.hot { background: var(--accent); border-color: var(--accent); color: #fff; }
+.flow i { font-style: normal; color: var(--accent); }
+.ring.lg { width: 104px; height: 104px; font-size: 22px; }
+.ring.lg::after { inset: 10px; }
+.role-head { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 18px; align-items: center; }
+@media (max-width: 480px) { .role-head { grid-template-columns: minmax(0, 1fr); } }
+.role-head h2 { margin: 0; font-size: 22px; text-wrap: balance; }
+.role-head p { margin: 4px 0 0; }
+.nextbox { background: var(--accent-soft); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; }
+.nextbox .lbl { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--accent-deep); }
+.nextbox b { font-size: 17px; }
+:root[data-theme="dark"] .nextbox .lbl { color: var(--accent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nextbox .lbl { color: var(--accent); } }
+.road { display: grid; }
+.step { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+.step .mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; border: 2px solid var(--line); color: var(--muted); }
+.step.done .mark { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.step.next { background: var(--accent-soft); border-radius: 8px; }
+.step.next .mark { background: var(--accent); border-color: var(--accent); color: #fff; }
+.step .st { font-size: 12px; text-align: right; white-space: nowrap; }
+@media (max-width: 520px) { .step { grid-template-columns: 30px minmax(0, 1fr); } .step .st { grid-column: 2; text-align: left; } }
+.role-list { display: grid; gap: 4px; }
+.role-btn { all: unset; cursor: pointer; display: grid; gap: 4px; padding: 8px; border-radius: 8px; }
+.role-btn:hover, .role-btn[aria-pressed="true"] { background: var(--accent-soft); }
+.role-btn:focus-visible { outline: 2px solid var(--accent); }
+.role-btn .top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 600; }
+.mtrack { display: block; height: 6px; background: var(--accent-soft); border-radius: 99px; overflow: hidden; }
+.role-btn[aria-pressed="true"] .mtrack { background: var(--surface); }
+.mtrack div { height: 100%; background: var(--accent); }
+.cgoal { display: grid; gap: 4px; }
 @media print { .band, nav.tabs, .side, .toast { display: none !important; } .layout { display: block; } body { background: #fff; } .paper { box-shadow: none; break-after: page; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 
@@ -241,7 +275,9 @@ details.box[open] summary { margin-bottom: 8px; }
 <div class="wrap">
   <nav class="tabs" role="tablist" aria-label="განყოფილებები">
     <button role="tab" id="tab-passport" data-tab="passport" aria-selected="true">პასპორტი</button>
+    <button role="tab" id="tab-career" data-tab="career" aria-selected="false">კარიერული გზა</button>
     <button role="tab" id="tab-students" data-tab="students" aria-selected="false">სტუდენტები</button>
+    <button role="tab" id="tab-lms" data-tab="lms" aria-selected="false">უნივერსიტეტის სისტემა</button>
     <button role="tab" id="tab-admin" data-tab="admin" aria-selected="false">BTU ადმინი</button>
     <button role="tab" id="tab-employer" data-tab="employer" aria-selected="false">დამსაქმებელი</button>
     <button role="tab" id="tab-verify" data-tab="verify" aria-selected="false">ვერიფიკაცია</button>
@@ -249,6 +285,8 @@ details.box[open] summary { margin-bottom: 8px; }
     <button role="tab" id="tab-ledger" data-tab="ledger" aria-selected="false">ბლოკჩეინი</button>
   </nav>
   <section class="panel" id="panel-passport"></section>
+  <section class="panel" id="panel-career" hidden></section>
+  <section class="panel" id="panel-lms" hidden></section>
   <section class="panel" id="panel-students" hidden></section>
   <section class="panel" id="panel-admin" hidden></section>
   <section class="panel" id="panel-employer" hidden></section>
@@ -300,7 +338,27 @@ const TIER = {
 };
 const ISSUER = "Business and Technology University (BTU)";
 const ZERO = "0".repeat(64);
-const STORE_KEY = "btu-passport-demo-v2";
+
+/* Career roles: each needs 5 stamps */
+const ROLES = [
+  { id: "MARKETING_ANALYST", name: "Marketing Analyst", ka: "მარკეტინგის ანალიტიკოსი", blurb: "კამპანიების დაგეგმვა AI-ით, აუდიტორიის ანალიზი და შედეგების გაზომვა.", skills: ["PROMPT_PRO", "AI_RESEARCH", "AI_MARKETING", "AI_DATA", "AI_ANALYTICS"] },
+  { id: "DATA_ANALYST", name: "Data Analyst", ka: "მონაცემთა ანალიტიკოსი", blurb: "მონაცემების დამუშავება, მოდელები და ბიზნესისთვის გამოსადეგი დასკვნები.", skills: ["PROMPT_PRO", "AI_VERIFY", "AI_DATA", "ML_DL", "AI_ANALYTICS"] },
+  { id: "AI_ENGINEER", name: "AI / ML Engineer", ka: "AI ინჟინერი", blurb: "ML მოდელების, AI აგენტებისა და მუშა პროტოტიპების აწყობა.", skills: ["PROMPT_PRO", "AI_DATA", "AI_PROTO", "AGENTIC_AI", "ML_DL"] },
+  { id: "AUTOMATION", name: "AI Automation Specialist", ka: "AI ავტომატიზაციის სპეციალისტი", blurb: "ბიზნეს-პროცესების ავტომატიზაცია AI ინსტრუმენტებითა და აგენტებით.", skills: ["PROMPT_PRO", "AI_VERIFY", "AI_AUTOMATION", "AI_PROTO", "AGENTIC_AI"] },
+  { id: "AI_PM", name: "AI Product Manager", ka: "AI პროდუქტის მენეჯერი", blurb: "AI პროდუქტის კვლევა, დაგეგმვა და პასუხისმგებლიანი დანერგვა.", skills: ["AI_RESEARCH", "AI_PRIVACY", "AI_PROTO", "AGENTIC_AI", "AI_ETHICS"] },
+  { id: "CONTENT", name: "Digital Content Specialist", ka: "ციფრული კონტენტის სპეციალისტი", blurb: "კონტენტის შექმნა და გავრცელება AI-ით, შედეგების ანალიზი.", skills: ["PROMPT_PRO", "AI_VERIFY", "AI_MARKETING", "AI_AUTOMATION", "AI_ANALYTICS"] },
+  { id: "POLICY", name: "AI Governance & Compliance", ka: "AI რეგულირებისა და შესაბამისობის სპეციალისტი", blurb: "AI სისტემების რისკების, ეთიკისა და კანონთან შესაბამისობის შეფასება.", skills: ["PROMPT_PRO", "AI_VERIFY", "AI_RESEARCH", "AI_PRIVACY", "AI_ETHICS"] },
+];
+const ROLE = Object.fromEntries(ROLES.map(r => [r.id, r]));
+const KIND = { AI_SKILL: "workshop", AI_APPLIED_SKILL: "bootcamp", AI_ADVANCED_SKILL: "course" };
+const KIND_KA = { workshop: "ვორქშოფი", bootcamp: "ბუთქემპი", course: "აკადემიური კურსი" };
+const KIND_TIME = { workshop: "დაახლ. 1 დღე", bootcamp: "3–5 დღე", course: "1 სემესტრი" };
+const VIA_EN = { LMS: "Auto-issued · BTU LMS", "LMS+ADMIN": "BTU LMS · admin approved", ADMIN: "Issued by BTU admin" };
+const RESULT_KA = { completed: "სრულად დაესწრო", partial: "ნაწილობრივ დაესწრო", absent: "არ დასწრებია", passed: "პროექტი ჩაბარდა", pending: "პროექტი შეფასებას ელოდება", failed: "პროექტი ვერ ჩაბარდა" };
+const STATUS_KA = { NEW: "ახალი", ISSUED: "შტამპი გაიცა", REJECTED: "არ გაიცა", REVIEW: "ადმინთან", SKIPPED: "გამოტოვდა" };
+const STATUS_CLS = { NEW: "tier", ISSUED: "good", REJECTED: "low", REVIEW: "mid", SKIPPED: "tier" };
+const DEFAULT_RULES = () => ({ auto: true, passGrade: 51, appliedNeedsApproval: true });
+const STORE_KEY = "btu-passport-demo-v3";
 const IN_FRAME = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 
 /* =========================================================
@@ -370,7 +428,7 @@ async function createVersion(st, changelog, when) {
     previousHash: last ? last.hash : null,
     stamps: [...st.stamps].sort((a, b) => a.earnedAt.localeCompare(b.earnedAt)).map(s => {
       const k = SKILL[s.code];
-      return { code: k.code, skill: k.name, tier: k.tier, source: k.source, description: s.description || k.description, earnedThrough: s.earnedThrough, earnedAt: s.earnedAt };
+      return { code: k.code, skill: k.name, tier: k.tier, source: k.source, description: s.description || k.description, earnedThrough: s.earnedThrough, earnedAt: s.earnedAt, issuedVia: s.issuedVia || "ADMIN" };
     }),
   };
   const hash = await hashPassport(data);
@@ -397,16 +455,105 @@ async function verifyHash(h) {
 }
 
 /* =========================================================
+   5b. University system (LMS) automation
+   ========================================================= */
+let lmsSeq = 0;
+function lmsRecord(email, code, result, date) {
+  return { id: "LMS-" + Date.now().toString(36) + "-" + (lmsSeq++), email, code, result: String(result), date, status: "NEW", reason: "" };
+}
+function earnedThroughFor(rec) {
+  const tier = SKILL[rec.code].tier, g = Number(rec.result);
+  if (KIND[tier] === "course" && rec.result !== "" && Number.isFinite(g)) return "Academic Course (grade " + g + "/100)";
+  return TIER[tier].earned;
+}
+function evaluateRecord(rec) {
+  const st = state.students.find(s => s.email === rec.email);
+  if (!st) return { d: "REVIEW", why: "ამ ელფოსტით სტუდენტი პასპორტების სისტემაში ვერ მოიძებნა" };
+  if (st.stamps.some(s => s.code === rec.code)) return { d: "SKIPPED", why: "ეს შტამპი სტუდენტს უკვე აქვს" };
+  const k = KIND[SKILL[rec.code].tier];
+  if (k === "course") {
+    const g = Number(rec.result);
+    if (rec.result === "" || !Number.isFinite(g) || g < 0 || g > 100) return { d: "REVIEW", why: "ნიშანი არასწორია (" + rec.result + "), საჭიროა შემოწმება" };
+    if (g < state.rules.passGrade) return { d: "REJECTED", why: "ნიშანი " + g + " ჩაბარების ზღვარზე (" + state.rules.passGrade + ") დაბალია" };
+    return { d: "ISSUE", why: "კურსი ჩაბარებულია, ნიშანი " + g };
+  }
+  if (k === "workshop") {
+    if (rec.result === "completed") return { d: "ISSUE", why: "ვორქშოფს სრულად დაესწრო" };
+    if (rec.result === "absent") return { d: "REJECTED", why: "ვორქშოფს არ დასწრებია" };
+    return { d: "REVIEW", why: "ნაწილობრივი დასწრება: გადაწყვეტილებას ადმინი იღებს" };
+  }
+  if (rec.result === "failed") return { d: "REJECTED", why: "ბუთქემპის პროექტი ვერ ჩაბარდა" };
+  if (rec.result === "pending") return { d: "REVIEW", why: "პროექტი ჯერ შეფასებას ელოდება" };
+  if (state.rules.appliedNeedsApproval) return { d: "REVIEW", why: "პროექტი ჩაბარდა; წესის მიხედვით Applied შტამპს ადმინი ადასტურებს" };
+  return { d: "ISSUE", why: "ბუთქემპის პროექტი ჩაბარდა" };
+}
+async function processLms(when) {
+  const todo = state.lms.filter(r => r.status === "NEW");
+  const byStudent = new Map();
+  const sum = { ISSUED: 0, REJECTED: 0, REVIEW: 0, SKIPPED: 0 };
+  for (const r of todo) {
+    const e = evaluateRecord(r);
+    r.reason = e.why;
+    if (e.d === "ISSUE") {
+      const st = state.students.find(s => s.email === r.email);
+      st.stamps.push({ code: r.code, earnedAt: r.date, earnedThrough: earnedThroughFor(r), issuedVia: "LMS" });
+      byStudent.set(st, (byStudent.get(st) || []).concat(SKILL[r.code].name));
+      r.status = "ISSUED";
+    } else r.status = e.d;
+    sum[r.status]++;
+  }
+  for (const [st, names] of byStudent) await createVersion(st, "ავტომატურად LMS-დან: " + names.join(", "), when);
+  if (todo.length) {
+    state.lastSync = when || new Date().toISOString();
+    logAction("LMS სინქრონიზაცია: გაიცა " + sum.ISSUED + ", არ გაიცა " + sum.REJECTED + ", ადმინთან " + sum.REVIEW, when);
+  }
+  return { sum, n: todo.length, last: todo[todo.length - 1] };
+}
+async function decideReview(id, approve) {
+  const r = state.lms.find(x => x.id === id);
+  if (!r || r.status !== "REVIEW") return null;
+  const st = state.students.find(s => s.email === r.email);
+  if (approve && st && !st.stamps.some(s => s.code === r.code)) {
+    st.stamps.push({ code: r.code, earnedAt: r.date, earnedThrough: earnedThroughFor(r), issuedVia: "LMS+ADMIN" });
+    r.status = "ISSUED"; r.reason = "ადმინმა დაადასტურა";
+    const v = await createVersion(st, "ადმინმა დაადასტურა: " + SKILL[r.code].name);
+    save(); return v;
+  }
+  r.status = "REJECTED";
+  r.reason = approve ? "ვერ გაიცა: სტუდენტი ვერ მოიძებნა ან შტამპი უკვე აქვს" : "ადმინმა უარყო";
+  logAction("ადმინმა უარყო: " + r.email + " · " + SKILL[r.code].name);
+  save(); return null;
+}
+function roleProgress(st, role) {
+  const has = new Map(st.stamps.map(s => [s.code, s]));
+  const steps = [...role.skills].sort((a, b) => TIERS.indexOf(SKILL[a].tier) - TIERS.indexOf(SKILL[b].tier));
+  const done = steps.filter(c => has.has(c));
+  return { has, steps, done, next: steps.find(c => !has.has(c)), pct: Math.round(done.length / steps.length * 100) };
+}
+
+/* =========================================================
    6. Seed data
    ========================================================= */
 const TRANSLIT = { "ა":"a","ბ":"b","გ":"g","დ":"d","ე":"e","ვ":"v","ზ":"z","თ":"t","ი":"i","კ":"k","ლ":"l","მ":"m","ნ":"n","ო":"o","პ":"p","ჟ":"zh","რ":"r","ს":"s","ტ":"t","უ":"u","ფ":"p","ქ":"k","ღ":"gh","ყ":"y","შ":"sh","ჩ":"ch","ც":"ts","ძ":"dz","წ":"ts","ჭ":"ch","ხ":"kh","ჯ":"j","ჰ":"h" };
 const slugify = s => s.toLowerCase().split("").map(c => TRANSLIT[c] ?? c).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 function newStudentRecord(p, n) {
   return { passportId: "BTU-AI-2026-" + String(n).padStart(4, "0"), firstName: p.firstName, lastName: p.lastName, email: p.email, faculty: p.faculty,
-    slug: p.slug || slugify(p.firstName + " " + p.lastName), versions: [], hidden: [], stamps: [] };
+    slug: p.slug || slugify(p.firstName + " " + p.lastName), versions: [], hidden: [], stamps: [], targetRole: null };
+}
+const SEED_ROLES = {
+  "nino.beridze@btu.edu.ge": "MARKETING_ANALYST", "giorgi.kapanadze@btu.edu.ge": "AI_ENGINEER", "ana.maisuradze@btu.edu.ge": "POLICY",
+  "luka.tsiklauri@btu.edu.ge": "AUTOMATION", "mariam.javakhishvili@btu.edu.ge": "AI_PM", "saba.gelashvili@btu.edu.ge": "DATA_ANALYST",
+};
+function seedStamp(st, code, d) {
+  const k = KIND[SKILL[code].tier];
+  const res = k === "course" ? String(72 + (code.length * 7 + d.charCodeAt(9)) % 27) : k === "workshop" ? "completed" : "passed";
+  const rec = lmsRecord(st.email, code, res, d);
+  rec.status = "ISSUED"; rec.reason = k === "bootcamp" ? "პროექტი ჩაბარდა, ადმინმა დაადასტურა" : "წესის მიხედვით ავტომატურად გაიცა";
+  state.lms.push(rec);
+  st.stamps.push({ code, earnedAt: d, earnedThrough: earnedThroughFor(rec), issuedVia: k === "bootcamp" ? "LMS+ADMIN" : "LMS" });
 }
 async function seed() {
-  state = { students: [], ledger: [], log: [] };
+  state = { students: [], ledger: [], log: [], lms: [], rules: DEFAULT_RULES(), lastSync: null };
   const people = [
     { firstName: "ნინო", lastName: "ბერიძე", email: "nino.beridze@btu.edu.ge", faculty: "ბიზნესის სკოლა",
       stamps: [["PROMPT_PRO", "2026-09-12"], ["AI_VERIFY", "2026-09-26"], ["AI_AUTOMATION", "2026-10-06"], ["AI_MARKETING", "2026-10-08"]] },
@@ -424,15 +571,23 @@ async function seed() {
   let n = 1;
   for (const p of people) {
     const st = newStudentRecord(p, n++);
-    st.stamps = p.stamps.map(([code, d]) => ({ code, earnedAt: d, earnedThrough: TIER[SKILL[code].tier].earned }));
+    st.targetRole = SEED_ROLES[st.email] || null;
+    for (const [code, d] of p.stamps) seedStamp(st, code, d);
     state.students.push(st);
     await createVersion(st, "პასპორტის პირველადი გაცემა", "2026-10-01T09:00:00.000Z");
   }
   const g = student("giorgi-kapanadze");
-  g.stamps.push({ code: "AGENTIC_AI", earnedAt: "2026-10-09", earnedThrough: TIER.AI_ADVANCED_SKILL.earned });
+  seedStamp(g, "AGENTIC_AI", "2026-10-09");
   await createVersion(g, "დაემატა შტამპი: Prompt Engineering & Agentic AI", "2026-10-10T12:30:00.000Z");
-  g.stamps.push({ code: "AI_ETHICS", earnedAt: "2026-10-13", earnedThrough: TIER.AI_ADVANCED_SKILL.earned });
+  seedStamp(g, "AI_ETHICS", "2026-10-13");
   await createVersion(g, "დაემატა შტამპი: AI Governance, Ethics & Regulation", "2026-10-14T10:15:00.000Z");
+  state.lms.push(
+    lmsRecord("mariam.javakhishvili@btu.edu.ge", "PROMPT_PRO", "completed", "2026-10-14"),
+    lmsRecord("ana.maisuradze@btu.edu.ge", "AI_DATA", "passed", "2026-10-14"),
+    lmsRecord("saba.gelashvili@btu.edu.ge", "ML_DL", "44", "2026-10-13"),
+    lmsRecord("n.kvaratskhelia@btu.edu.ge", "AI_RESEARCH", "completed", "2026-10-14"),
+  );
+  await processLms("2026-10-15T08:00:00.000Z");
   save();
 }
 
@@ -579,13 +734,14 @@ function renderPassport() {
       '<article class="paper" aria-label="Detailed information">' +
         '<h3 class="sec-h">AI SKILLS DETAILED INFORMATION</h3><p class="sec-s">Detailed record of verified AI skills and learning experiences</p>' +
         (shown.length ? '<div class="tbl-wrap"><table class="det"><thead><tr><th>STAMP TYPE</th><th>SKILL</th><th>DESCRIPTION</th><th>EARNED THROUGH</th><th>DATE EARNED</th></tr></thead><tbody>' +
-          shown.map(s => '<tr><td>' + stampIcon(s.tier) + '</td><td class="sk">' + esc(s.skill) + '</td><td>' + esc(s.description) + '<br><span style="color:rgba(17,17,17,.55)">' + esc(s.source) + '</span></td><td>' + esc(s.earnedThrough) + '</td><td class="dt">' + esc(s.earnedAt) + '</td></tr>').join("") +
+          shown.map(s => '<tr><td>' + stampIcon(s.tier) + '</td><td class="sk">' + esc(s.skill) + '</td><td>' + esc(s.description) + '<br><span style="color:rgba(17,17,17,.55)">' + esc(s.source) + '</span></td><td>' + esc(s.earnedThrough) + '<br><span style="color:rgba(17,17,17,.55)">' + VIA_EN[s.issuedVia || "ADMIN"] + '</span></td><td class="dt">' + esc(s.earnedAt) + '</td></tr>').join("") +
         '</tbody></table></div>' : '<p>შტამპები ჯერ არ არის. პირველი შტამპი BTU ადმინის ჩანართიდან მიანიჭეთ.</p>') + pageFoot(d.passportId, 4) +
       '</article>' +
     '</div>' +
     '<aside class="side">' +
       '<label class="f" for="pick">სტუდენტი<select id="pick">' + studentOptions(st.slug) + '</select></label>' +
       '<div class="kv"><span>Passport ID</span><span class="mono">' + esc(d.passportId) + '</span><span>ფაკულტეტი</span><span>' + esc(st.faculty) + '</span><span>Hash</span><span class="mono">' + short(v.hash) + '</span></div>' +
+      careerSummary(st) +
       '<div class="row"><button class="btn primary sm" id="go-verify">ვერიფიკაცია</button><button class="btn sm" id="go-json">გაყალბების ტესტი</button></div>' +
       '<hr class="sep">' +
       '<label class="row small" for="shared-toggle" style="gap:8px"><input type="checkbox" id="shared-toggle"' + (ui.shared ? " checked" : "") + '> დამსაქმებლისთვის გაზიარებული ხედი</label>' +
@@ -616,6 +772,7 @@ function renderPassport() {
 
   $("pick").onchange = e => { ui.student = e.target.value; ui.lastAdded = null; ui.cmpA = ui.cmpB = null; renderPassport(); };
   $("go-verify").onclick = () => openVerifyHash(v.hash);
+  $("go-career").onclick = () => setTab("career");
   $("go-json").onclick = () => { verifyState.mode = "json"; verifyState.json = JSON.stringify(v.data, null, 2); verifyState.result = null; setTab("verify"); };
   $("shared-toggle").onchange = e => { ui.shared = e.target.checked; renderPassport(); };
   el.querySelectorAll("[data-vis]").forEach(c => c.onchange = () => {
@@ -721,7 +878,7 @@ async function importCsv(text) {
     if (!SKILL[code]) { report.push({ ok: false, t: n + "უცნობი უნარის კოდი (" + code + ")" }); continue; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) { report.push({ ok: false, t: n + "თარიღი უნდა იყოს YYYY-MM-DD" }); continue; }
     if (st.stamps.some(s => s.code === code)) { report.push({ ok: false, t: n + fullName(st) + "-ს ეს შტამპი უკვე აქვს" }); continue; }
-    st.stamps.push({ code, earnedAt: date, earnedThrough: through || TIER[SKILL[code].tier].earned });
+    st.stamps.push({ code, earnedAt: date, earnedThrough: through || TIER[SKILL[code].tier].earned, issuedVia: "ADMIN" });
     touched.set(st.slug, (touched.get(st.slug) || []).concat(SKILL[code].name));
     report.push({ ok: true, t: n + fullName(st) + " ← " + SKILL[code].name });
   }
@@ -735,7 +892,9 @@ async function importCsv(text) {
 }
 
 function renderAdmin() {
+  updateBadges();
   const el = $("panel-admin");
+  const queue = state.lms.filter(r => r.status === "REVIEW");
   const st = student(ui.student);
   const owned = new Set(st.stamps.map(s => s.code));
   const free = SKILLS.filter(s => !owned.has(s.code));
@@ -743,9 +902,26 @@ function renderAdmin() {
   const cur = activeVersion(st);
   el.innerHTML =
     '<div class="grid2">' +
+    '<div class="card form">' +
+      '<h3>დასადასტურებელი რიგი (' + queue.length + ')</h3>' +
+      '<p class="muted small" style="margin:0">შემთხვევები, რომლებზეც ავტომატიკა გადაწყვეტილებას თავად ვერ იღებს. დადასტურებისას შტამპი გაიცემა და ახალი ვერსია იქმნება.</p>' +
+      (queue.length ? queue.map(r => { const s2 = state.students.find(x => x.email === r.email); const k = KIND[SKILL[r.code].tier];
+        return '<div class="qitem"><b>' + (s2 ? esc(fullName(s2)) : esc(r.email)) + ' · ' + esc(SKILL[r.code].name) + '</b>' +
+          '<span class="muted small">' + esc(SKILL[r.code].source) + ' · ' + KIND_KA[k] + ' · ' + esc(k === "course" ? "ნიშანი " + r.result : (RESULT_KA[r.result] || r.result)) + ' · ' + esc(r.date) + '</span>' +
+          '<span class="small warn-t">' + esc(r.reason) + '</span>' +
+          '<div class="row"><button class="btn primary sm" type="button" data-approve="' + r.id + '"' + (s2 ? "" : " disabled") + '>დადასტურება</button><button class="btn sm danger" type="button" data-reject="' + r.id + '">უარყოფა</button></div></div>'; }).join("")
+        : '<p class="muted small">რიგი ცარიელია. ყველა შედეგი ავტომატურად დამუშავდა.</p>') +
+    '</div>' +
+    '<div class="card form">' +
+      '<h3>ვინ რას აკეთებს</h3>' +
+      '<div class="kv"><span>ლექტორი</span><span>უნივერსიტეტის სისტემაში წერს ნიშნებს და აფიქსირებს დასწრებას</span>' +
+      '<span>ავტომატიკა</span><span>წესებით ამოწმებს შედეგს, გასცემს შტამპს, ქმნის ვერსიას და ბლოკს</span>' +
+      '<span>ადმინი</span><span>განიხილავს რიგს, ცვლის წესებს, აუქმებს ვერსიებს, ამატებს გამონაკლისებს</span></div>' +
+      '<p class="muted small" style="margin:0">ყოველი ქმედება ანალიტიკის ჟურნალში იწერება, ამიტომ ჩანს, რა გასცა სისტემამ და რა ადმინმა.</p>' +
+    '</div>' +
     '<form class="card form" id="stamp-form" novalidate>' +
-      '<h3>შტამპის მინიჭება</h3>' +
-      '<p class="muted small" style="margin:0">მინიჭებისას სისტემა ავტომატურად ქმნის პასპორტის ახალ ვერსიას, ითვლის SHA-256 hash-ს და წერს მას ბლოკში. წინა ვერსია SUPERSEDED ხდება.</p>' +
+      '<h3>ხელით მინიჭება (გამონაკლისები)</h3>' +
+      '<p class="muted small" style="margin:0">მაგ. გარე ღონისძიება, რომელიც LMS-ში არ ჩანს. მინიჭებისას იქმნება ახალი ვერსია, hash და ბლოკი.</p>' +
       '<label class="f" for="a-student">სტუდენტი<select id="a-student">' + state.students.map(s => '<option value="' + s.slug + '"' + (s.slug === st.slug ? " selected" : "") + '>' + esc(fullName(s)) + ' · ' + s.stamps.length + ' შტამპი</option>').join("") + '</select></label>' +
       (free.length ? '<label class="f" for="a-skill">უნარი<select id="a-skill">' +
         TIERS.map(t => '<optgroup label="' + TIER[t].label + '">' + free.filter(s => s.tier === t).map(s => '<option value="' + s.code + '">' + esc(s.name) + '</option>').join("") + '</optgroup>').join("") +
@@ -779,6 +955,13 @@ function renderAdmin() {
       '<div class="row"><button class="btn" id="reset" type="button">საწყისი მონაცემების აღდგენა</button></div>' +
     '</div></div>';
 
+  el.querySelectorAll("[data-approve]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    const v = await decideReview(b.dataset.approve, true);
+    toast(v ? "დადასტურდა · შეიქმნა v" + v.versionNo + " · ბლოკი #" + v.block : "ვერ გაიცა");
+    renderAdmin();
+  });
+  el.querySelectorAll("[data-reject]").forEach(b => b.onclick = async () => { await decideReview(b.dataset.reject, false); toast("უარყოფილია"); renderAdmin(); });
   const skillSel = $("a-skill"), through = $("a-through");
   const syncThrough = () => { if (skillSel) through.value = TIER[SKILL[skillSel.value].tier].earned; };
   syncThrough();
@@ -789,7 +972,7 @@ function renderAdmin() {
     if (!skillSel) return;
     const btn = $("a-submit"); btn.disabled = true; btn.textContent = "იწერება ბლოკში…";
     const code = skillSel.value;
-    st.stamps.push({ code, earnedAt: $("a-date").value || today, earnedThrough: through.value.trim() || TIER[SKILL[code].tier].earned, description: $("a-desc").value.trim() || undefined });
+    st.stamps.push({ code, earnedAt: $("a-date").value || today, earnedThrough: through.value.trim() || TIER[SKILL[code].tier].earned, description: $("a-desc").value.trim() || undefined, issuedVia: "ADMIN" });
     await new Promise(r => setTimeout(r, 650));
     const v = await createVersion(st, "დაემატა შტამპი: " + SKILL[code].name);
     save();
@@ -818,9 +1001,177 @@ function renderAdmin() {
   $("reset").onclick = async () => {
     await seed();
     ui = { ...ui, student: "giorgi-kapanadze", lastAdded: null, confirmRevoke: false, shared: false, cmpA: null, cmpB: null };
-    verifyState = freshVerify(); csvState = { text: CSV_SAMPLE, report: null };
+    verifyState = freshVerify(); csvState = { text: CSV_SAMPLE, report: null }; lmsForm = freshLmsForm();
     toast("მონაცემები აღდგა"); renderAdmin();
   };
+}
+
+/* =========================================================
+   10b. Career roadmap tab
+   ========================================================= */
+function careerSummary(st) {
+  const tr = ROLE[st.targetRole];
+  if (!tr) return '<div class="cgoal"><span class="muted small">კარიერული მიზანი არ არის არჩეული</span><button class="linkish" id="go-career" type="button">მიზნის არჩევა →</button></div>';
+  const p = roleProgress(st, tr);
+  return '<div class="cgoal"><span class="muted small">კარიერული მიზანი</span><b>' + esc(tr.name) + ' · ' + p.done.length + '/' + p.steps.length + '</b>' +
+    '<span class="mtrack"><div style="width:' + p.pct + '%"></div></span>' +
+    '<span class="small">' + (p.next ? "შემდეგი: " + esc(SKILL[p.next].source) : "ყველა საჭირო უნარი დადასტურებულია") + '</span>' +
+    '<button class="linkish" id="go-career" type="button">კარიერული გზა →</button></div>';
+}
+function renderCareer() {
+  const el = $("panel-career");
+  const st = student(ui.student);
+  const ranked = ROLES.map(r => ({ r, p: roleProgress(st, r) })).sort((a, b) => b.p.pct - a.p.pct);
+  const chosen = ROLE[st.targetRole];
+  const role = chosen || ranked[0].r;
+  const p = roleProgress(st, role);
+  const left = { workshop: 0, bootcamp: 0, course: 0 };
+  p.steps.filter(c => !p.has.has(c)).forEach(c => left[KIND[SKILL[c].tier]]++);
+  const leftText = Object.entries(left).filter(([, n]) => n).map(([k, n]) => n + " " + KIND_KA[k]).join(", ");
+  const steps = p.steps.map((c, i) => {
+    const k = SKILL[c], got = p.has.get(c), isNext = c === p.next;
+    return '<div class="step' + (got ? " done" : isNext ? " next" : "") + '">' +
+      '<span class="mark" aria-hidden="true">' + (got ? "✓" : i + 1) + '</span>' +
+      '<div style="min-width:0"><b class="small" style="display:flex;gap:6px;align-items:center">' + dot(k.tier) + esc(k.name) + '</b>' +
+      '<span class="muted small">' + esc(k.source) + ' · ' + KIND_KA[KIND[k.tier]] + '</span></div>' +
+      '<span class="st ' + (got ? "add" : isNext ? "" : "muted") + '">' + (got ? "მიღებულია " + esc(got.earnedAt) : isNext ? "<b>შემდეგი ნაბიჯი</b>" : KIND_TIME[KIND[k.tier]]) + '</span></div>';
+  }).join("");
+  const nx = p.next ? SKILL[p.next] : null;
+  el.innerHTML =
+    '<div class="layout"><div class="card form" style="gap:18px">' +
+      '<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2 class="h">კარიერული გზამკვლევი</h2><p class="muted small" style="margin:0">აირჩიე სასურველი პოზიცია და ნახე, რა გაკლია და რა გააკეთო შემდეგ.</p></div>' +
+      '<label class="f" for="c-stu" style="min-width:200px">სტუდენტი<select id="c-stu">' + studentOptions(st.slug) + '</select></label></div>' +
+      '<div class="role-head"><div class="ring lg" style="--p:' + p.pct + '"><span>' + p.pct + '%</span></div><div style="min-width:0">' +
+        (chosen ? "" : '<span class="pill tier">შემოთავაზებული: ყველაზე ახლოს მყოფი როლი</span>') +
+        '<h2>' + esc(role.name) + '</h2><div class="muted">' + esc(role.ka) + '</div><p>' + esc(role.blurb) + '</p>' +
+        '<p><b>ამ როლისთვის ' + p.steps.length + ' შტამპიდან ' + p.done.length + ' გაქვს.</b>' + (leftText ? ' დარჩენილია: ' + leftText + '.' : "") + '</p>' +
+        (chosen ? "" : '<div style="margin-top:8px"><button class="btn primary sm" type="button" id="c-set">მიზნად დაყენება</button></div>') +
+      '</div></div>' +
+      (nx
+        ? '<div class="nextbox"><span class="lbl">შემდეგი ნაბიჯი</span><b>' + esc(nx.source) + '</b><span class="small">' + KIND_KA[KIND[nx.tier]] + ' · ' + KIND_TIME[KIND[nx.tier]] + ' · შტამპი: ' + esc(nx.name) + ' (' + TIER[nx.tier].label + ')</span>' +
+          '<span class="muted small">დასრულების შემდეგ შედეგი უნივერსიტეტის სისტემაში აისახება და შტამპი პასპორტში ავტომატურად დაემატება.</span></div>'
+        : '<div class="result VALID"><div class="big">როლისთვის საჭირო ყველა უნარი დადასტურებულია</div><div>პასპორტი მზადაა ამ პოზიციაზე განაცხადისთვის. გაუზიარე დამსაქმებელს.</div></div>') +
+      '<div><h3 style="margin:0 0 6px">გზა ეტაპებად</h3><div class="road">' + steps + '</div></div>' +
+      '<div class="legend">' + TIERS.map(t => '<span>' + dot(t) + TIER[t].label + '</span>').join("") + '</div>' +
+    '</div>' +
+    '<aside class="side"><h3>ყველა როლი შენი შტამპებით</h3><div class="role-list">' +
+      ranked.map(x => '<button class="role-btn" type="button" data-role="' + x.r.id + '" aria-pressed="' + (x.r.id === role.id) + '"><span class="top"><span>' + esc(x.r.name) + '</span><span>' + x.p.done.length + '/' + x.p.steps.length + '</span></span><span class="mtrack"><div style="width:' + x.p.pct + '%"></div></span></button>').join("") +
+    '</div><p class="muted small" style="margin:0">კარიერული მიზანი პირადი გეგმაა და პასპორტის hash-ში არ შედის. დამსაქმებელი მხოლოდ დადასტურებულ შტამპებს ხედავს.</p>' +
+    '<button class="btn sm" type="button" id="c-pass">პასპორტის ნახვა</button></aside></div>';
+
+  $("c-stu").onchange = e => { ui.student = e.target.value; renderCareer(); };
+  if ($("c-set")) $("c-set").onclick = () => { st.targetRole = role.id; save(); toast("მიზანი: " + role.name); renderCareer(); };
+  $("c-pass").onclick = () => setTab("passport");
+  el.querySelectorAll("[data-role]").forEach(b => b.onclick = () => { st.targetRole = b.dataset.role; save(); renderCareer(); });
+}
+
+/* =========================================================
+   10c. University system (LMS) tab
+   ========================================================= */
+const freshLmsForm = () => ({ student: null, code: "AI_ANALYTICS", result: "", date: "" });
+let lmsForm = freshLmsForm();
+function renderLms() {
+  updateBadges();
+  const el = $("panel-lms");
+  const R = state.rules;
+  const today = new Date().toISOString().slice(0, 10);
+  if (!lmsForm.student || !student(lmsForm.student)) lmsForm.student = ui.student;
+  const k = KIND[SKILL[lmsForm.code].tier];
+  const resOpts = k === "workshop" ? ["completed", "partial", "absent"] : ["passed", "pending", "failed"];
+  const resultField = k === "course"
+    ? '<label class="f" for="l-res">ნიშანი (0–100)<input id="l-res" type="number" min="0" max="100" value="' + esc(lmsForm.result || "78") + '"></label>'
+    : '<label class="f" for="l-res">შედეგი<select id="l-res">' + resOpts.map(v => '<option value="' + v + '"' + (lmsForm.result === v ? " selected" : "") + '>' + RESULT_KA[v] + '</option>').join("") + '</select></label>';
+  const waiting = state.lms.filter(r => r.status === "NEW").length, review = state.lms.filter(r => r.status === "REVIEW").length;
+  const rows = [...state.lms].reverse().slice(0, 80).map(rec => {
+    const s2 = state.students.find(x => x.email === rec.email), kk = KIND[SKILL[rec.code].tier];
+    return '<tr><td class="num">' + esc(rec.date) + '</td><td>' + (s2 ? esc(fullName(s2)) : '<span class="rem">' + esc(rec.email) + '</span>') + '</td>' +
+      '<td>' + dot(SKILL[rec.code].tier) + ' ' + esc(SKILL[rec.code].source) + '<br><span class="muted small">' + KIND_KA[kk] + ' → ' + esc(SKILL[rec.code].name) + '</span></td>' +
+      '<td>' + esc(kk === "course" ? rec.result : (RESULT_KA[rec.result] || rec.result)) + '</td>' +
+      '<td><span class="pill ' + STATUS_CLS[rec.status] + '">' + STATUS_KA[rec.status] + '</span><br><span class="muted small">' + esc(rec.reason) + '</span></td></tr>';
+  }).join("");
+  el.innerHTML =
+    '<h2 class="h">უნივერსიტეტის სისტემა (LMS)</h2>' +
+    '<p class="lead">აქ სიმულირებულია BTU-ის სასწავლო სისტემა. ლექტორი წერს ნიშანს ან აფიქსირებს დასწრებას, პასპორტების სისტემა შედეგს წესებით ამოწმებს და შტამპს თავად გასცემს. საეჭვო შემთხვევები ადმინთან მიდის.</p>' +
+    '<div class="flow" aria-label="პროცესი"><span>ლექტორი წერს შედეგს</span><i>→</i><span>LMS</span><i>→</i><span class="hot">წესების შემოწმება</span><i>→</i><span>შტამპი</span><i>→</i><span>ახალი ვერსია + hash</span><i>→</i><span>ბლოკი</span></div>' +
+    '<div class="grid2">' +
+    '<form class="card form" id="lms-form" novalidate>' +
+      '<h3>ახალი შედეგი სასწავლო სისტემაში</h3>' +
+      '<p class="muted small" style="margin:0">ასე გამოიყურება ლექტორის მხრიდან: ნიშნის ან დასწრების შეყვანა.</p>' +
+      '<label class="f" for="l-stu">სტუდენტი<select id="l-stu">' + studentOptions(lmsForm.student) + '</select></label>' +
+      '<label class="f" for="l-act">კურსი ან აქტივობა<select id="l-act">' +
+        TIERS.map(t => '<optgroup label="' + KIND_KA[KIND[t]] + ' → ' + TIER[t].label + '">' + SKILLS.filter(s => s.tier === t).map(s => '<option value="' + s.code + '"' + (s.code === lmsForm.code ? " selected" : "") + '>' + esc(s.source) + '</option>').join("") + '</optgroup>').join("") +
+      '</select></label>' +
+      resultField +
+      '<label class="f" for="l-date">თარიღი<input type="date" id="l-date" value="' + esc(lmsForm.date || today) + '"></label>' +
+      '<p class="rem small" id="l-err" hidden></p>' +
+      '<div class="row"><button class="btn primary" type="submit">შედეგის შენახვა</button><button class="btn" type="button" id="l-sem">სემესტრის დასრულების სიმულაცია</button></div>' +
+    '</form>' +
+    '<div class="card form">' +
+      '<h3>ავტომატიზაციის წესები</h3>' +
+      '<p class="muted small" style="margin:0">წესებს მხოლოდ ადმინი ცვლის.</p>' +
+      '<label class="row small" for="r-auto" style="gap:8px;flex-wrap:nowrap"><input type="checkbox" id="r-auto"' + (R.auto ? " checked" : "") + '> ავტომატური სინქრონიზაცია: ახალი შედეგი მაშინვე მუშავდება</label>' +
+      '<label class="f" for="r-pass">კურსის ჩაბარების მინიმალური ქულა<input type="number" id="r-pass" min="1" max="100" value="' + R.passGrade + '"></label>' +
+      '<label class="row small" for="r-appr" style="gap:8px;flex-wrap:nowrap"><input type="checkbox" id="r-appr"' + (R.appliedNeedsApproval ? " checked" : "") + '> ბუთქემპის (Applied) შტამპი მხოლოდ ადმინის დადასტურებით</label>' +
+      '<div class="tbl-wrap"><table class="list" style="min-width:420px;font-size:13px"><thead><tr><th>აქტივობა</th><th>შტამპი გაიცემა</th><th>ადმინთან მიდის</th></tr></thead><tbody>' +
+        '<tr><td>ვორქშოფი</td><td>სრული დასწრება</td><td>ნაწილობრივი დასწრება</td></tr>' +
+        '<tr><td>ბუთქემპი</td><td>' + (R.appliedNeedsApproval ? "ადმინის დადასტურების შემდეგ" : "პროექტი ჩაბარდა") + '</td><td>' + (R.appliedNeedsApproval ? "ჩაბარებული ან შეუფასებელი პროექტი" : "შეუფასებელი პროექტი") + '</td></tr>' +
+        '<tr><td>კურსი</td><td>ქულა ≥ ' + R.passGrade + '</td><td>არასწორი ნიშანი</td></tr>' +
+        '<tr><td>ნებისმიერი</td><td>—</td><td>უცნობი სტუდენტი</td></tr>' +
+      '</tbody></table></div>' +
+      '<div class="kv"><span>ბოლო სინქრონიზაცია</span><span>' + (state.lastSync ? esc(fmt(state.lastSync)) : "—") + '</span><span>ელოდება</span><span>' + waiting + '</span><span>ადმინთან</span><span>' + review + (review ? ' <button class="linkish" type="button" id="l-queue">რიგის ნახვა →</button>' : "") + '</span></div>' +
+      '<div class="row"><button class="btn sm" type="button" id="r-sync"' + (waiting ? "" : " disabled") + '>სინქრონიზაცია ახლა</button></div>' +
+    '</div></div>' +
+    '<div class="card" style="margin-top:20px"><h3>შედეგები და გადაწყვეტილებები</h3>' +
+      '<div class="tbl-wrap" style="margin-top:8px"><table class="list"><thead><tr><th>თარიღი</th><th>სტუდენტი</th><th>აქტივობა → შტამპი</th><th>შედეგი</th><th>გადაწყვეტილება</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '</div>';
+
+  const syncAndReport = async (single, force) => {
+    if (!state.rules.auto && !force) { save(); toast("შენახულია. ავტომატური სინქრონიზაცია გამორთულია: დააჭირეთ „სინქრონიზაცია ახლა“."); renderLms(); return; }
+    const out = await processLms();
+    save();
+    if (single && out.last) {
+      const r = out.last;
+      toast(r.status === "ISSUED" ? "შტამპი ავტომატურად გაიცა: " + SKILL[r.code].name : r.status === "REVIEW" ? "გადაეგზავნა ადმინს: " + r.reason : r.status === "REJECTED" ? "შტამპი არ გაიცა: " + r.reason : r.reason);
+    } else toast(out.n + " შედეგი · გაიცა " + out.sum.ISSUED + " · ადმინთან " + out.sum.REVIEW + " · არ გაიცა " + out.sum.REJECTED);
+    renderLms();
+  };
+  $("l-stu").onchange = e => { lmsForm.student = e.target.value; };
+  $("l-act").onchange = e => { lmsForm.code = e.target.value; lmsForm.result = ""; lmsForm.date = $("l-date").value; renderLms(); };
+  $("l-res").onchange = e => { lmsForm.result = e.target.value; };
+  $("l-date").onchange = e => { lmsForm.date = e.target.value; };
+  $("lms-form").onsubmit = async e => {
+    e.preventDefault();
+    const err = $("l-err"), res = $("l-res").value.trim();
+    if (k === "course" && (res === "" || isNaN(Number(res)))) { err.textContent = "შეიყვანეთ ნიშანი 0-დან 100-მდე."; err.hidden = false; return; }
+    const s2 = student($("l-stu").value);
+    lmsForm.student = s2.slug; lmsForm.result = res; lmsForm.date = $("l-date").value || today;
+    state.lms.push(lmsRecord(s2.email, lmsForm.code, res, lmsForm.date));
+    ui.student = s2.slug; ui.lastAdded = lmsForm.code;
+    await syncAndReport(true, false);
+  };
+  $("l-sem").onclick = async () => {
+    let n = 0;
+    for (const s2 of state.students) {
+      const free = SKILLS.filter(x => !s2.stamps.some(y => y.code === x.code));
+      const picks = free.sort(() => Math.random() - .5).slice(0, 1 + Math.floor(Math.random() * 2));
+      for (const x of picks) {
+        const kk = KIND[x.tier], q = Math.random();
+        const res = kk === "course" ? String(35 + Math.floor(Math.random() * 64)) : kk === "workshop" ? (q < .75 ? "completed" : q < .9 ? "partial" : "absent") : (q < .6 ? "passed" : q < .8 ? "pending" : "failed");
+        state.lms.push(lmsRecord(s2.email, x.code, res, today)); n++;
+      }
+    }
+    if (!n) { toast("ყველა სტუდენტს ყველა შტამპი უკვე აქვს."); return; }
+    await syncAndReport(false, false);
+  };
+  $("r-auto").onchange = async e => { state.rules.auto = e.target.checked; save(); if (state.rules.auto && state.lms.some(r => r.status === "NEW")) await syncAndReport(false, true); else renderLms(); };
+  $("r-pass").onchange = e => { const v = Math.min(100, Math.max(1, Math.round(Number(e.target.value) || 51))); state.rules.passGrade = v; save(); renderLms(); };
+  $("r-appr").onchange = e => { state.rules.appliedNeedsApproval = e.target.checked; save(); renderLms(); };
+  $("r-sync").onclick = () => syncAndReport(false, true);
+  if ($("l-queue")) $("l-queue").onclick = () => setTab("admin");
+}
+function updateBadges() {
+  const n = state.lms.filter(r => r.status === "REVIEW").length;
+  $("tab-admin").textContent = "BTU ადმინი" + (n ? " (" + n + ")" : "");
 }
 
 /* =========================================================
@@ -978,7 +1329,7 @@ function renderAnalytics() {
     '<div class="tiles">' +
       '<div class="tile"><b>' + state.students.length + '</b><span>პასპორტი</span></div>' +
       '<div class="tile"><b>' + all.length + '</b><span>მინიჭებული შტამპი</span></div>' +
-      '<div class="tile"><b>' + versions + '</b><span>ვერსია სულ</span></div>' +
+      '<div class="tile"><b>' + (all.length ? Math.round(all.filter(s => (s.issuedVia || "ADMIN") !== "ADMIN").length / all.length * 100) : 0) + '%</b><span>გაცემულია LMS-ის მონაცემებით (' + versions + ' ვერსია)</span></div>' +
       '<div class="tile"><b>' + state.ledger.length + '</b><span>ბლოკი ჯაჭვში</span></div>' +
     '</div>' +
     '<div class="grid2">' +
@@ -1031,7 +1382,7 @@ async function renderLedger() {
 /* =========================================================
    15. Tabs, theme, boot
    ========================================================= */
-const RENDER = { passport: renderPassport, students: renderStudents, admin: renderAdmin, employer: renderEmployer, verify: renderVerify, analytics: renderAnalytics, ledger: renderLedger };
+const RENDER = { passport: renderPassport, career: renderCareer, students: renderStudents, lms: renderLms, admin: renderAdmin, employer: renderEmployer, verify: renderVerify, analytics: renderAnalytics, ledger: renderLedger };
 function setTab(tab) {
   if (backup) { state.ledger[backup.i].passportHash = backup.h; backup = null; }
   ui.tab = tab;
@@ -1039,6 +1390,7 @@ function setTab(tab) {
   Object.keys(RENDER).forEach(t => $("panel-" + t).hidden = t !== tab);
   if (tab === "admin") ui.confirmRevoke = false;
   RENDER[tab]();
+  updateBadges();
   try { localStorage.setItem(STORE_KEY + ":tab", tab); } catch (e) {}
 }
 document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
@@ -1056,7 +1408,7 @@ $("theme-btn").onclick = () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]
 
 (async () => {
   const saved = load();
-  if (saved && saved.students && saved.ledger) { state = saved; state.log = state.log || []; state.students.forEach(s => { s.hidden = s.hidden || []; }); }
+  if (saved && saved.students && saved.ledger) { state = saved; state.log = state.log || []; state.lms = state.lms || []; state.rules = state.rules || DEFAULT_RULES(); state.students.forEach(s => { s.hidden = s.hidden || []; }); }
   else await seed();
   if (!student(ui.student)) ui.student = state.students[0].slug;
   const h = location.hash.slice(1);
