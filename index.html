@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>BTU AI Skills Passport</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="BTU AI Skills Digital Passport prototype: verifiable AI skill stamps, versioning and blockchain-style verification.">
@@ -120,7 +121,14 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100
 .tbar .track { height: 8px; background: rgba(17,17,17,.08); border-radius: 99px; overflow: hidden; }
 .tbar .fill { height: 100%; border-radius: 99px; }
 .tbar .n { font-family: var(--f-mono); text-align: right; }
-.cover-stamps { position: absolute; right: 40px; bottom: 70px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.paper { container-type: inline-size; }
+.cover-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 28px; align-items: end; }
+.cover-stamps { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; padding-top: 12px; }
+@container (max-width: 640px) {
+  .cover-grid { grid-template-columns: minmax(0, 1fr); }
+  .cover-stamps { align-items: flex-start; }
+  .cover-fields { grid-template-columns: minmax(0, 1fr); }
+}
 .cs { font-family: var(--f-display); font-size: 10px; padding: 5px 9px; letter-spacing: .04em; }
 .cs.a { background: var(--accent); color: #fff; transform: rotate(-6deg); }
 .cs.b { background: #fff; color: var(--accent-deep); border: 2px solid var(--accent-deep); transform: rotate(5deg); }
@@ -130,7 +138,6 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100
   .paper { padding: 22px 18px 70px; }
   .paper .foot-l { left: 18px; } .paper .foot-r { right: 18px; } .stars { right: 18px; } .paper .page-no { right: 18px; }
   .cover-fields { grid-template-columns: minmax(0, 1fr); }
-  .cover-stamps { position: static; align-items: flex-start; margin-top: 22px; }
 }
 .about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 28px; }
 @media (max-width: 760px) { .about { grid-template-columns: minmax(0, 1fr); } }
@@ -642,6 +649,7 @@ function renderPassport() {
       '<article class="paper" aria-label="ყდა">' +
         (ui.shared ? '<span class="shared-flag">SHARED VIEW · ' + shown.length + ' / ' + d.stamps.length + ' STAMPS</span>' : "") +
         '<div class="stars" aria-hidden="true">✱<br>✱<br>✱</div>' +
+        '<div class="cover-grid"><div style="min-width:0">' +
         '<h2 class="p-title">AI SKILLS</h2><p class="p-sub">DIGITAL PASSPORT</p>' +
         '<div class="cover-fields">' +
           '<div>NAME:<span>' + esc(d.holder.firstName) + '</span></div>' +
@@ -652,11 +660,12 @@ function renderPassport() {
         '<div class="tier-bars" aria-label="შტამპები ტიპების მიხედვით">' +
           TIERS.map(t => '<div class="tbar"><span>' + TIER[t].label.toUpperCase() + '</span><div class="track"><div class="fill" style="width:' + (counts[t] / perTierTotal(t) * 100) + '%;background:' + TIER[t].color + '"></div></div><span class="n">' + counts[t] + '/' + perTierTotal(t) + '</span></div>').join("") +
         '</div>' +
+        '</div>' +
         '<div class="cover-stamps">' +
           '<span class="cs a">ISSUED BY BUSINESS AND TECHNOLOGY UNIVERSITY</span>' +
           '<span class="cs b">BLOCKCHAIN VERIFIED</span>' +
           '<div class="qrbox"><div id="qr"></div><small>SCAN TO VERIFY</small></div>' +
-        '</div>' + pageFoot(d.passportId, 1) +
+        '</div></div>' + pageFoot(d.passportId, 1) +
       '</article>' +
       '<article class="paper" aria-label="About">' +
         '<div class="about"><div>' +
