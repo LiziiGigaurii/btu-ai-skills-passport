@@ -6,6 +6,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Noto+Sans+Georgian:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* Layout: BTU magenta band on top, tabbed tool below; the passport itself is white "paper" following BTU's 4-page visual concept */
 :root {
@@ -226,6 +227,10 @@ details.box[open] summary { margin-bottom: 8px; }
 .vis-list { display: grid; gap: 6px; font-size: 13px; }
 .vis-list label { display: flex; gap: 8px; align-items: flex-start; }
 .csv-out { display: grid; gap: 2px; font-size: 13px; }
+.enroll-list { display: grid; gap: 6px; max-height: 300px; overflow: auto; padding-right: 2px; }
+.enroll-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; border-bottom: 1px dashed var(--line); padding-bottom: 6px; font-size: 13px; }
+.enroll-row .em { grid-column: 1 / -1; color: var(--muted); font-size: 12px; word-break: break-all; }
+.enroll-sum { display: flex; flex-wrap: wrap; gap: 6px; }
 .qitem { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 4px; font-size: 14px; }
 .warn-t { color: var(--warn); }
 .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; font-weight: 600; margin: 0 0 18px; }
@@ -746,6 +751,41 @@ function renderPassport() {
 /* =========================================================
    9. Students tab
    ========================================================= */
+const ENROLL_SAMPLE = [
+  "სახელი,გვარი,ელფოსტა",
+  "თამარ,ლომიძე,tamar.lomidze@btu.edu.ge",
+  "დავით,ხუციშვილი,davit.khutsishvili@btu.edu.ge",
+  "ელენე,ჩხეიძე,elene.chkheidze@btu.edu.ge,ტექნოლოგიების სკოლა",
+  "ნინო,ბერიძე,nino.beridze@btu.edu.ge",
+  "ირაკლი,მაჭავარიანი,irakli.machavariani",
+].join("\n");
+let enrollState = { text: ENROLL_SAMPLE, faculty: "ბიზნესის სკოლა" };
+const ENROLL_KA = { NEW: "ახალი", EXISTS: "უკვე არის", DUP: "გამეორება", ERROR: "შეცდომა" };
+const ENROLL_CLS = { NEW: "good", EXISTS: "tier", DUP: "mid", ERROR: "low" };
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+function parseEnrollment(text, defaultFaculty) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const seen = new Set(), rows = [];
+  lines.forEach((line, i) => {
+    const cells = line.split(/\t|;|,/).map(c => c.trim().replace(/^"|"$/g, "")).filter(Boolean);
+    if (i === 0 && !cells.some(c => c.includes("@")) && cells.some(c => /mail|ელ|სახელ|name|გვარ/i.test(c))) return; // header row
+    const emailCell = cells.find(c => c.includes("@")) || cells.find(c => /^[\w.+-]+$/.test(c) && /[a-z]/i.test(c) && c.includes(".")) || "";
+    const rest = cells.filter(c => c !== emailCell);
+    let firstName = "", lastName = "", faculty = "";
+    if (rest[0] && /\s/.test(rest[0])) { const parts = rest[0].split(/\s+/); firstName = parts[0]; lastName = parts.slice(1).join(" "); faculty = rest[1] || ""; }
+    else { firstName = rest[0] || ""; lastName = rest[1] || ""; faculty = rest[2] || ""; }
+    const email = emailCell.toLowerCase();
+    const r = { firstName, lastName, email, faculty: faculty || defaultFaculty, status: "NEW", note: "" };
+    if (!firstName || !lastName) { r.status = "ERROR"; r.note = "სახელი ან გვარი აკლია"; }
+    else if (!email) { r.status = "ERROR"; r.note = "ელფოსტა აკლია"; }
+    else if (!EMAIL_RE.test(email)) { r.status = "ERROR"; r.note = "ელფოსტა არასწორია"; }
+    else if (state.students.some(s => s.email === email)) { r.status = "EXISTS"; r.note = "პასპორტი უკვე აქვს"; }
+    else if (seen.has(email)) { r.status = "DUP"; r.note = "სიაში ორჯერ წერია"; }
+    if (email) seen.add(email);
+    rows.push(r);
+  });
+  return rows;
+}
 function renderStudents() {
   const el = $("panel-students");
   const q = ui.search.trim().toLowerCase();
@@ -765,7 +805,7 @@ function renderStudents() {
         '</div>' +
       '</div>' +
       '<div class="tbl-wrap" style="margin-top:14px"><table class="list"><thead><tr><th>სტუდენტი</th><th>Passport ID</th><th>შტამპები</th><th>ვერსია</th><th></th></tr></thead><tbody>' +
-        (list.length ? list.map(s => { const v = activeVersion(s); return '<tr><td><b>' + esc(fullName(s)) + '</b><br><span class="muted small">' + esc(s.faculty) + '</span></td>' +
+        (list.length ? list.map(s => { const v = activeVersion(s); return '<tr><td><b>' + esc(fullName(s)) + '</b>' + ((ui.newSlugs || []).includes(s.slug) ? ' <span class="pill good">ახალი</span>' : "") + '<br><span class="muted small">' + esc(s.faculty) + '</span></td>' +
           '<td class="mono">' + esc(s.passportId) + '</td>' +
           '<td><div class="mini-stamps">' + (v.data.stamps.length ? v.data.stamps.map(x => dot(x.tier)).join("") : '<span class="muted small">—</span>') + '</div><span class="muted small">' + v.data.stamps.length + ' შტამპი</span></td>' +
           '<td class="num">v' + v.versionNo + ' <span class="pill ' + v.status + '">' + v.status + '</span></td>' +
@@ -774,38 +814,71 @@ function renderStudents() {
       '</tbody></table></div>' +
       '<div class="legend" style="margin-top:12px">' + TIERS.map(t => '<span>' + dot(t) + TIER[t].label + '</span>').join("") + '</div>' +
     '</div>' +
-    '<form class="side form" id="new-student" novalidate>' +
-      '<h3>ახალი სტუდენტის რეგისტრაცია</h3>' +
-      '<p class="muted small" style="margin:0">სისტემა ავტომატურად ანიჭებს Passport ID-ს და გასცემს პასპორტის პირველ ვერსიას.</p>' +
-      '<label class="f" for="n-first">სახელი<input id="n-first" required></label>' +
-      '<label class="f" for="n-last">გვარი<input id="n-last" required></label>' +
-      '<label class="f" for="n-email">ელფოსტა<input id="n-email" type="email" placeholder="name.surname@btu.edu.ge" required></label>' +
-      '<label class="f" for="n-fac">სკოლა<select id="n-fac"><option>ბიზნესის სკოლა</option><option>ტექნოლოგიების სკოლა</option><option>სხვა</option></select></label>' +
-      '<p class="rem small" id="n-err" hidden></p>' +
-      '<button class="btn primary" type="submit">რეგისტრაცია და პასპორტის გაცემა</button>' +
-    '</form></div>';
+    '<div class="side form">' +
+      '<h3>ჩარიცხულების სიის იმპორტი</h3>' +
+      '<p class="muted small" style="margin:0">ჩასვით ჩარიცხულების სია Excel-იდან ან ატვირთეთ ფაილი. თითო ხაზზე: სახელი, გვარი, ელფოსტა (სკოლა არასავალდებულოა). სისტემა სიას ამოწმებს, თითოეულს ანიჭებს Passport ID-ს და გასცემს პასპორტს.</p>' +
+      '<label class="f" for="e-file">ფაილი (.xlsx, .csv)<input type="file" id="e-file" accept=".xlsx,.xls,.csv,.txt"></label>' +
+      '<label class="f" for="e-text">ან ჩასვით სია<textarea id="e-text" spellcheck="false" style="min-height:140px" placeholder="სახელი, გვარი, ელფოსტა">' + esc(enrollState.text) + '</textarea></label>' +
+      '<label class="f" for="e-fac">სკოლა, თუ სიაში არ წერია<select id="e-fac">' + ["ბიზნესის სკოლა", "ტექნოლოგიების სკოლა", "სხვა"].map(f => '<option' + (f === enrollState.faculty ? " selected" : "") + '>' + f + '</option>').join("") + '</select></label>' +
+      '<div id="e-preview"></div>' +
+    '</div></div>';
 
   const search = $("s-search");
   search.oninput = () => { ui.search = search.value; const pos = search.selectionStart; renderStudents(); const s2 = $("s-search"); s2.focus(); s2.setSelectionRange(pos, pos); };
   el.querySelectorAll("[data-tf]").forEach(b => b.onclick = () => { ui.tierFilter = b.dataset.tf; renderStudents(); });
   el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { ui.student = b.dataset.open; ui.shared = false; setTab("passport"); });
-  $("new-student").onsubmit = async e => {
-    e.preventDefault();
-    const first = $("n-first").value.trim(), last = $("n-last").value.trim(), email = $("n-email").value.trim().toLowerCase();
-    const err = $("n-err");
-    const fail = m => { err.textContent = m; err.hidden = false; };
-    if (!first || !last) return fail("შეავსეთ სახელი და გვარი.");
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail("ელფოსტა არასწორია. მაგალითი: name.surname@btu.edu.ge");
-    if (state.students.some(s => s.email === email)) return fail("ამ ელფოსტით სტუდენტი უკვე რეგისტრირებულია.");
-    const st = newStudentRecord({ firstName: first, lastName: last, email, faculty: $("n-fac").value }, state.students.length + 1);
-    let base = st.slug || "student", n = 2;
-    while (state.students.some(s => s.slug === st.slug)) st.slug = base + "-" + n++;
-    state.students.push(st);
-    await createVersion(st, "პასპორტის პირველადი გაცემა");
-    save();
-    toast(fullName(st) + ": გაიცა " + st.passportId);
-    ui.student = st.slug; ui.shared = false; setTab("passport");
+  const refreshPreview = () => {
+    const rows = parseEnrollment($("e-text").value, $("e-fac").value);
+    const c = { NEW: 0, EXISTS: 0, DUP: 0, ERROR: 0 };
+    rows.forEach(r => c[r.status]++);
+    const box = $("e-preview");
+    if (!rows.length) { box.innerHTML = '<p class="muted small" style="margin:0">სია ცარიელია.</p>'; return; }
+    box.innerHTML =
+      '<div class="enroll-sum"><span class="pill good">ახალი: ' + c.NEW + '</span>' +
+        (c.EXISTS ? '<span class="pill tier">უკვე რეგისტრირებულია: ' + c.EXISTS + '</span>' : "") +
+        (c.DUP ? '<span class="pill mid">გამეორება სიაში: ' + c.DUP + '</span>' : "") +
+        (c.ERROR ? '<span class="pill low">შეცდომა: ' + c.ERROR + '</span>' : "") + '</div>' +
+      '<div class="enroll-list" style="margin-top:8px">' + rows.map(r =>
+        '<div class="enroll-row"><b>' + esc((r.firstName + " " + r.lastName).trim() || "—") + '</b>' +
+        '<span class="pill ' + ENROLL_CLS[r.status] + '">' + ENROLL_KA[r.status] + '</span>' +
+        '<span class="em">' + esc(r.email || "ელფოსტა არ არის") + (r.note ? ' · ' + esc(r.note) : "") + '</span></div>').join("") + '</div>' +
+      '<button class="btn primary" type="button" id="e-go" style="margin-top:10px;width:100%;justify-content:center"' + (c.NEW ? "" : " disabled") + '>რეგისტრაცია და პასპორტების გაცემა (' + c.NEW + ')</button>';
+    $("e-go").onclick = async () => {
+      const b = $("e-go"); b.disabled = true; b.textContent = "იცემა პასპორტები…";
+      const created = [];
+      for (const r of rows.filter(x => x.status === "NEW")) {
+        const st = newStudentRecord({ firstName: r.firstName, lastName: r.lastName, email: r.email, faculty: r.faculty }, state.students.length + 1);
+        const base = st.slug || "student"; let n = 2;
+        if (!st.slug) st.slug = base;
+        while (state.students.some(x => x.slug === st.slug)) st.slug = base + "-" + n++;
+        state.students.push(st);
+        await createVersion(st, "პასპორტის პირველადი გაცემა (ჩარიცხულების სიიდან)");
+        created.push(st.slug);
+      }
+      logAction("ჩარიცხულების სიიდან დარეგისტრირდა " + created.length + " სტუდენტი");
+      save();
+      ui.newSlugs = created; ui.search = ""; ui.tierFilter = "";
+      enrollState.text = "";
+      toast("დარეგისტრირდა " + created.length + " სტუდენტი, პასპორტები გაიცა");
+      renderStudents();
+    };
   };
+  $("e-text").oninput = () => { enrollState.text = $("e-text").value; refreshPreview(); };
+  $("e-fac").onchange = () => { enrollState.faculty = $("e-fac").value; refreshPreview(); };
+  $("e-file").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      if (/\.xlsx?$/i.test(f.name)) {
+        if (!window.XLSX) { toast("Excel-ის წამკითხველი ვერ ჩაიტვირთა. ჩასვით სია ტექსტად ან შეინახეთ .csv-ად."); return; }
+        const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+        enrollState.text = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]).split("\n").filter(l => l.replace(/,/g, "").trim()).join("\n");
+      } else enrollState.text = await f.text();
+      $("e-text").value = enrollState.text;
+      refreshPreview();
+      toast("ფაილი წაკითხულია: " + f.name);
+    } catch (err) { toast("ფაილის წაკითხვა ვერ მოხერხდა. შეამოწმეთ ფორმატი."); }
+  };
+  refreshPreview();
 }
 
 /* =========================================================
@@ -955,7 +1028,7 @@ function renderAdmin() {
   $("reset").onclick = async () => {
     await seed();
     ui = { ...ui, student: "giorgi-kapanadze", lastAdded: null, confirmRevoke: false, shared: false, cmpA: null, cmpB: null };
-    verifyState = freshVerify(); csvState = { text: CSV_SAMPLE, report: null }; lmsForm = freshLmsForm();
+    verifyState = freshVerify(); csvState = { text: CSV_SAMPLE, report: null }; lmsForm = freshLmsForm(); enrollState = { text: ENROLL_SAMPLE, faculty: "ბიზნესის სკოლა" }; ui.newSlugs = [];
     toast("მონაცემები აღდგა"); renderAdmin();
   };
 }
