@@ -225,34 +225,6 @@ details.box[open] summary { margin-bottom: 8px; }
 .flow span { background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; }
 .flow span.hot { background: var(--accent); border-color: var(--accent); color: #fff; }
 .flow i { font-style: normal; color: var(--accent); }
-.ring.lg { width: 104px; height: 104px; font-size: 22px; }
-.ring.lg::after { inset: 10px; }
-.role-head { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 18px; align-items: center; }
-@media (max-width: 480px) { .role-head { grid-template-columns: minmax(0, 1fr); } }
-.role-head h2 { margin: 0; font-size: 22px; text-wrap: balance; }
-.role-head p { margin: 4px 0 0; }
-.nextbox { background: var(--accent-soft); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; }
-.nextbox .lbl { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--accent-deep); }
-.nextbox b { font-size: 17px; }
-:root[data-theme="dark"] .nextbox .lbl { color: var(--accent); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nextbox .lbl { color: var(--accent); } }
-.road { display: grid; }
-.step { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--line); }
-.step .mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; border: 2px solid var(--line); color: var(--muted); }
-.step.done .mark { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
-.step.next { background: var(--accent-soft); border-radius: 8px; }
-.step.next .mark { background: var(--accent); border-color: var(--accent); color: #fff; }
-.step .st { font-size: 12px; text-align: right; white-space: nowrap; }
-@media (max-width: 520px) { .step { grid-template-columns: 30px minmax(0, 1fr); } .step .st { grid-column: 2; text-align: left; } }
-.role-list { display: grid; gap: 4px; }
-.role-btn { all: unset; cursor: pointer; display: grid; gap: 4px; padding: 8px; border-radius: 8px; }
-.role-btn:hover, .role-btn[aria-pressed="true"] { background: var(--accent-soft); }
-.role-btn:focus-visible { outline: 2px solid var(--accent); }
-.role-btn .top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 600; }
-.mtrack { display: block; height: 6px; background: var(--accent-soft); border-radius: 99px; overflow: hidden; }
-.role-btn[aria-pressed="true"] .mtrack { background: var(--surface); }
-.mtrack div { height: 100%; background: var(--accent); }
-.cgoal { display: grid; gap: 4px; }
 @media print { .band, nav.tabs, .side, .toast { display: none !important; } .layout { display: block; } body { background: #fff; } .paper { box-shadow: none; break-after: page; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 
@@ -275,7 +247,6 @@ details.box[open] summary { margin-bottom: 8px; }
 <div class="wrap">
   <nav class="tabs" role="tablist" aria-label="განყოფილებები">
     <button role="tab" id="tab-passport" data-tab="passport" aria-selected="true">პასპორტი</button>
-    <button role="tab" id="tab-career" data-tab="career" aria-selected="false">კარიერული გზა</button>
     <button role="tab" id="tab-students" data-tab="students" aria-selected="false">სტუდენტები</button>
     <button role="tab" id="tab-lms" data-tab="lms" aria-selected="false">უნივერსიტეტის სისტემა</button>
     <button role="tab" id="tab-admin" data-tab="admin" aria-selected="false">BTU ადმინი</button>
@@ -285,7 +256,6 @@ details.box[open] summary { margin-bottom: 8px; }
     <button role="tab" id="tab-ledger" data-tab="ledger" aria-selected="false">ბლოკჩეინი</button>
   </nav>
   <section class="panel" id="panel-passport"></section>
-  <section class="panel" id="panel-career" hidden></section>
   <section class="panel" id="panel-lms" hidden></section>
   <section class="panel" id="panel-students" hidden></section>
   <section class="panel" id="panel-admin" hidden></section>
@@ -339,20 +309,8 @@ const TIER = {
 const ISSUER = "Business and Technology University (BTU)";
 const ZERO = "0".repeat(64);
 
-/* Career roles: each needs 5 stamps */
-const ROLES = [
-  { id: "MARKETING_ANALYST", name: "Marketing Analyst", ka: "მარკეტინგის ანალიტიკოსი", blurb: "კამპანიების დაგეგმვა AI-ით, აუდიტორიის ანალიზი და შედეგების გაზომვა.", skills: ["PROMPT_PRO", "AI_RESEARCH", "AI_MARKETING", "AI_DATA", "AI_ANALYTICS"] },
-  { id: "DATA_ANALYST", name: "Data Analyst", ka: "მონაცემთა ანალიტიკოსი", blurb: "მონაცემების დამუშავება, მოდელები და ბიზნესისთვის გამოსადეგი დასკვნები.", skills: ["PROMPT_PRO", "AI_VERIFY", "AI_DATA", "ML_DL", "AI_ANALYTICS"] },
-  { id: "AI_ENGINEER", name: "AI / ML Engineer", ka: "AI ინჟინერი", blurb: "ML მოდელების, AI აგენტებისა და მუშა პროტოტიპების აწყობა.", skills: ["PROMPT_PRO", "AI_DATA", "AI_PROTO", "AGENTIC_AI", "ML_DL"] },
-  { id: "AUTOMATION", name: "AI Automation Specialist", ka: "AI ავტომატიზაციის სპეციალისტი", blurb: "ბიზნეს-პროცესების ავტომატიზაცია AI ინსტრუმენტებითა და აგენტებით.", skills: ["PROMPT_PRO", "AI_VERIFY", "AI_AUTOMATION", "AI_PROTO", "AGENTIC_AI"] },
-  { id: "AI_PM", name: "AI Product Manager", ka: "AI პროდუქტის მენეჯერი", blurb: "AI პროდუქტის კვლევა, დაგეგმვა და პასუხისმგებლიანი დანერგვა.", skills: ["AI_RESEARCH", "AI_PRIVACY", "AI_PROTO", "AGENTIC_AI", "AI_ETHICS"] },
-  { id: "CONTENT", name: "Digital Content Specialist", ka: "ციფრული კონტენტის სპეციალისტი", blurb: "კონტენტის შექმნა და გავრცელება AI-ით, შედეგების ანალიზი.", skills: ["PROMPT_PRO", "AI_VERIFY", "AI_MARKETING", "AI_AUTOMATION", "AI_ANALYTICS"] },
-  { id: "POLICY", name: "AI Governance & Compliance", ka: "AI რეგულირებისა და შესაბამისობის სპეციალისტი", blurb: "AI სისტემების რისკების, ეთიკისა და კანონთან შესაბამისობის შეფასება.", skills: ["PROMPT_PRO", "AI_VERIFY", "AI_RESEARCH", "AI_PRIVACY", "AI_ETHICS"] },
-];
-const ROLE = Object.fromEntries(ROLES.map(r => [r.id, r]));
 const KIND = { AI_SKILL: "workshop", AI_APPLIED_SKILL: "bootcamp", AI_ADVANCED_SKILL: "course" };
 const KIND_KA = { workshop: "ვორქშოფი", bootcamp: "ბუთქემპი", course: "აკადემიური კურსი" };
-const KIND_TIME = { workshop: "დაახლ. 1 დღე", bootcamp: "3–5 დღე", course: "1 სემესტრი" };
 const VIA_EN = { LMS: "Auto-issued · BTU LMS", "LMS+ADMIN": "BTU LMS · admin approved", ADMIN: "Issued by BTU admin" };
 const RESULT_KA = { completed: "სრულად დაესწრო", partial: "ნაწილობრივ დაესწრო", absent: "არ დასწრებია", passed: "პროექტი ჩაბარდა", pending: "პროექტი შეფასებას ელოდება", failed: "პროექტი ვერ ჩაბარდა" };
 const STATUS_KA = { NEW: "ახალი", ISSUED: "შტამპი გაიცა", REJECTED: "არ გაიცა", REVIEW: "ადმინთან", SKIPPED: "გამოტოვდა" };
@@ -524,12 +482,6 @@ async function decideReview(id, approve) {
   logAction("ადმინმა უარყო: " + r.email + " · " + SKILL[r.code].name);
   save(); return null;
 }
-function roleProgress(st, role) {
-  const has = new Map(st.stamps.map(s => [s.code, s]));
-  const steps = [...role.skills].sort((a, b) => TIERS.indexOf(SKILL[a].tier) - TIERS.indexOf(SKILL[b].tier));
-  const done = steps.filter(c => has.has(c));
-  return { has, steps, done, next: steps.find(c => !has.has(c)), pct: Math.round(done.length / steps.length * 100) };
-}
 
 /* =========================================================
    6. Seed data
@@ -538,12 +490,8 @@ const TRANSLIT = { "ა":"a","ბ":"b","გ":"g","დ":"d","ე":"e","ვ":"v","
 const slugify = s => s.toLowerCase().split("").map(c => TRANSLIT[c] ?? c).join("").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 function newStudentRecord(p, n) {
   return { passportId: "BTU-AI-2026-" + String(n).padStart(4, "0"), firstName: p.firstName, lastName: p.lastName, email: p.email, faculty: p.faculty,
-    slug: p.slug || slugify(p.firstName + " " + p.lastName), versions: [], hidden: [], stamps: [], targetRole: null };
+    slug: p.slug || slugify(p.firstName + " " + p.lastName), versions: [], hidden: [], stamps: [] };
 }
-const SEED_ROLES = {
-  "nino.beridze@btu.edu.ge": "MARKETING_ANALYST", "giorgi.kapanadze@btu.edu.ge": "AI_ENGINEER", "ana.maisuradze@btu.edu.ge": "POLICY",
-  "luka.tsiklauri@btu.edu.ge": "AUTOMATION", "mariam.javakhishvili@btu.edu.ge": "AI_PM", "saba.gelashvili@btu.edu.ge": "DATA_ANALYST",
-};
 function seedStamp(st, code, d) {
   const k = KIND[SKILL[code].tier];
   const res = k === "course" ? String(72 + (code.length * 7 + d.charCodeAt(9)) % 27) : k === "workshop" ? "completed" : "passed";
@@ -571,7 +519,6 @@ async function seed() {
   let n = 1;
   for (const p of people) {
     const st = newStudentRecord(p, n++);
-    st.targetRole = SEED_ROLES[st.email] || null;
     for (const [code, d] of p.stamps) seedStamp(st, code, d);
     state.students.push(st);
     await createVersion(st, "პასპორტის პირველადი გაცემა", "2026-10-01T09:00:00.000Z");
@@ -741,7 +688,6 @@ function renderPassport() {
     '<aside class="side">' +
       '<label class="f" for="pick">სტუდენტი<select id="pick">' + studentOptions(st.slug) + '</select></label>' +
       '<div class="kv"><span>Passport ID</span><span class="mono">' + esc(d.passportId) + '</span><span>ფაკულტეტი</span><span>' + esc(st.faculty) + '</span><span>Hash</span><span class="mono">' + short(v.hash) + '</span></div>' +
-      careerSummary(st) +
       '<div class="row"><button class="btn primary sm" id="go-verify">ვერიფიკაცია</button><button class="btn sm" id="go-json">გაყალბების ტესტი</button></div>' +
       '<hr class="sep">' +
       '<label class="row small" for="shared-toggle" style="gap:8px"><input type="checkbox" id="shared-toggle"' + (ui.shared ? " checked" : "") + '> დამსაქმებლისთვის გაზიარებული ხედი</label>' +
@@ -772,7 +718,6 @@ function renderPassport() {
 
   $("pick").onchange = e => { ui.student = e.target.value; ui.lastAdded = null; ui.cmpA = ui.cmpB = null; renderPassport(); };
   $("go-verify").onclick = () => openVerifyHash(v.hash);
-  $("go-career").onclick = () => setTab("career");
   $("go-json").onclick = () => { verifyState.mode = "json"; verifyState.json = JSON.stringify(v.data, null, 2); verifyState.result = null; setTab("verify"); };
   $("shared-toggle").onchange = e => { ui.shared = e.target.checked; renderPassport(); };
   el.querySelectorAll("[data-vis]").forEach(c => c.onchange = () => {
@@ -1004,65 +949,6 @@ function renderAdmin() {
     verifyState = freshVerify(); csvState = { text: CSV_SAMPLE, report: null }; lmsForm = freshLmsForm();
     toast("მონაცემები აღდგა"); renderAdmin();
   };
-}
-
-/* =========================================================
-   10b. Career roadmap tab
-   ========================================================= */
-function careerSummary(st) {
-  const tr = ROLE[st.targetRole];
-  if (!tr) return '<div class="cgoal"><span class="muted small">კარიერული მიზანი არ არის არჩეული</span><button class="linkish" id="go-career" type="button">მიზნის არჩევა →</button></div>';
-  const p = roleProgress(st, tr);
-  return '<div class="cgoal"><span class="muted small">კარიერული მიზანი</span><b>' + esc(tr.name) + ' · ' + p.done.length + '/' + p.steps.length + '</b>' +
-    '<span class="mtrack"><div style="width:' + p.pct + '%"></div></span>' +
-    '<span class="small">' + (p.next ? "შემდეგი: " + esc(SKILL[p.next].source) : "ყველა საჭირო უნარი დადასტურებულია") + '</span>' +
-    '<button class="linkish" id="go-career" type="button">კარიერული გზა →</button></div>';
-}
-function renderCareer() {
-  const el = $("panel-career");
-  const st = student(ui.student);
-  const ranked = ROLES.map(r => ({ r, p: roleProgress(st, r) })).sort((a, b) => b.p.pct - a.p.pct);
-  const chosen = ROLE[st.targetRole];
-  const role = chosen || ranked[0].r;
-  const p = roleProgress(st, role);
-  const left = { workshop: 0, bootcamp: 0, course: 0 };
-  p.steps.filter(c => !p.has.has(c)).forEach(c => left[KIND[SKILL[c].tier]]++);
-  const leftText = Object.entries(left).filter(([, n]) => n).map(([k, n]) => n + " " + KIND_KA[k]).join(", ");
-  const steps = p.steps.map((c, i) => {
-    const k = SKILL[c], got = p.has.get(c), isNext = c === p.next;
-    return '<div class="step' + (got ? " done" : isNext ? " next" : "") + '">' +
-      '<span class="mark" aria-hidden="true">' + (got ? "✓" : i + 1) + '</span>' +
-      '<div style="min-width:0"><b class="small" style="display:flex;gap:6px;align-items:center">' + dot(k.tier) + esc(k.name) + '</b>' +
-      '<span class="muted small">' + esc(k.source) + ' · ' + KIND_KA[KIND[k.tier]] + '</span></div>' +
-      '<span class="st ' + (got ? "add" : isNext ? "" : "muted") + '">' + (got ? "მიღებულია " + esc(got.earnedAt) : isNext ? "<b>შემდეგი ნაბიჯი</b>" : KIND_TIME[KIND[k.tier]]) + '</span></div>';
-  }).join("");
-  const nx = p.next ? SKILL[p.next] : null;
-  el.innerHTML =
-    '<div class="layout"><div class="card form" style="gap:18px">' +
-      '<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2 class="h">კარიერული გზამკვლევი</h2><p class="muted small" style="margin:0">აირჩიე სასურველი პოზიცია და ნახე, რა გაკლია და რა გააკეთო შემდეგ.</p></div>' +
-      '<label class="f" for="c-stu" style="min-width:200px">სტუდენტი<select id="c-stu">' + studentOptions(st.slug) + '</select></label></div>' +
-      '<div class="role-head"><div class="ring lg" style="--p:' + p.pct + '"><span>' + p.pct + '%</span></div><div style="min-width:0">' +
-        (chosen ? "" : '<span class="pill tier">შემოთავაზებული: ყველაზე ახლოს მყოფი როლი</span>') +
-        '<h2>' + esc(role.name) + '</h2><div class="muted">' + esc(role.ka) + '</div><p>' + esc(role.blurb) + '</p>' +
-        '<p><b>ამ როლისთვის ' + p.steps.length + ' შტამპიდან ' + p.done.length + ' გაქვს.</b>' + (leftText ? ' დარჩენილია: ' + leftText + '.' : "") + '</p>' +
-        (chosen ? "" : '<div style="margin-top:8px"><button class="btn primary sm" type="button" id="c-set">მიზნად დაყენება</button></div>') +
-      '</div></div>' +
-      (nx
-        ? '<div class="nextbox"><span class="lbl">შემდეგი ნაბიჯი</span><b>' + esc(nx.source) + '</b><span class="small">' + KIND_KA[KIND[nx.tier]] + ' · ' + KIND_TIME[KIND[nx.tier]] + ' · შტამპი: ' + esc(nx.name) + ' (' + TIER[nx.tier].label + ')</span>' +
-          '<span class="muted small">დასრულების შემდეგ შედეგი უნივერსიტეტის სისტემაში აისახება და შტამპი პასპორტში ავტომატურად დაემატება.</span></div>'
-        : '<div class="result VALID"><div class="big">როლისთვის საჭირო ყველა უნარი დადასტურებულია</div><div>პასპორტი მზადაა ამ პოზიციაზე განაცხადისთვის. გაუზიარე დამსაქმებელს.</div></div>') +
-      '<div><h3 style="margin:0 0 6px">გზა ეტაპებად</h3><div class="road">' + steps + '</div></div>' +
-      '<div class="legend">' + TIERS.map(t => '<span>' + dot(t) + TIER[t].label + '</span>').join("") + '</div>' +
-    '</div>' +
-    '<aside class="side"><h3>ყველა როლი შენი შტამპებით</h3><div class="role-list">' +
-      ranked.map(x => '<button class="role-btn" type="button" data-role="' + x.r.id + '" aria-pressed="' + (x.r.id === role.id) + '"><span class="top"><span>' + esc(x.r.name) + '</span><span>' + x.p.done.length + '/' + x.p.steps.length + '</span></span><span class="mtrack"><div style="width:' + x.p.pct + '%"></div></span></button>').join("") +
-    '</div><p class="muted small" style="margin:0">კარიერული მიზანი პირადი გეგმაა და პასპორტის hash-ში არ შედის. დამსაქმებელი მხოლოდ დადასტურებულ შტამპებს ხედავს.</p>' +
-    '<button class="btn sm" type="button" id="c-pass">პასპორტის ნახვა</button></aside></div>';
-
-  $("c-stu").onchange = e => { ui.student = e.target.value; renderCareer(); };
-  if ($("c-set")) $("c-set").onclick = () => { st.targetRole = role.id; save(); toast("მიზანი: " + role.name); renderCareer(); };
-  $("c-pass").onclick = () => setTab("passport");
-  el.querySelectorAll("[data-role]").forEach(b => b.onclick = () => { st.targetRole = b.dataset.role; save(); renderCareer(); });
 }
 
 /* =========================================================
@@ -1382,7 +1268,7 @@ async function renderLedger() {
 /* =========================================================
    15. Tabs, theme, boot
    ========================================================= */
-const RENDER = { passport: renderPassport, career: renderCareer, students: renderStudents, lms: renderLms, admin: renderAdmin, employer: renderEmployer, verify: renderVerify, analytics: renderAnalytics, ledger: renderLedger };
+const RENDER = { passport: renderPassport, students: renderStudents, lms: renderLms, admin: renderAdmin, employer: renderEmployer, verify: renderVerify, analytics: renderAnalytics, ledger: renderLedger };
 function setTab(tab) {
   if (backup) { state.ledger[backup.i].passportHash = backup.h; backup = null; }
   ui.tab = tab;
