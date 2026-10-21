@@ -79,6 +79,10 @@
     db = saved ? new SQL.Database(b64ToBytes(saved)) : new SQL.Database();
     try { sheetRows = JSON.parse(store.get(KEYS.sheet) || "null"); } catch (e) { sheetRows = null; }
     if (!Array.isArray(sheetRows)) sheetRows = JSON.parse(JSON.stringify(window.BTU_TEST_SHEET));
+    else { // rows added to the test data after this browser saved its sheet
+      const have = new Set(sheetRows.map((r) => r.recordId));
+      window.BTU_TEST_SHEET.forEach((r) => { if (!have.has(r.recordId)) sheetRows.push(JSON.parse(JSON.stringify(r))); });
+    }
     source = currentSource();
     const tpl = b64ToBytes(window.PASSPORT_TEMPLATE_B64);
     const sheetProxy = { get label() { return source.label; }, read: () => source.read(), writeBack: (u) => source.writeBack(u) };
