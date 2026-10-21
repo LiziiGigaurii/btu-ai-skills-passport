@@ -35,7 +35,7 @@
   }
   function logout() {
     setSession(null); ui.otp = null; ui.lastSync = null;
-    if (location.hash === "#verify") go(); else location.hash = "#verify";
+    if (location.hash === "#home") go(); else location.hash = "#home";
     toast("გამოხვედით სისტემიდან");
   }
 
@@ -198,10 +198,10 @@
   }
 
   // ------------------------------------------------------------ routing
-  const ROUTES = { verify: renderVerify, student: renderStudent, admin: renderAdmin, ledger: renderLedger, login: renderLogin };
+  const ROUTES = { home: renderHome, verify: renderVerify, student: renderStudent, admin: renderAdmin, ledger: renderLedger, login: renderLogin };
   function go() {
-    const r = (location.hash || "#verify").slice(1);
-    let route = ROUTES[r] ? r : "verify";
+    const r = (location.hash || "#home").slice(1);
+    let route = ROUTES[r] ? r : "home";
     const role = ui.session && ui.session.role;
     // Private pages need the matching sign-in: students see only their own passport, the admin sees administration.
     if (route === "admin" && role !== "admin") { ui.loginFor = "admin"; route = "login"; }
@@ -214,7 +214,7 @@
   }
   function renderNav() {
     const role = ui.session && ui.session.role;
-    const links = [["verify", "ვერიფიკაცია"], ["ledger", "ბლოკჩეინი"]];
+    const links = [["home", "მთავარი"], ["verify", "ვერიფიკაცია"], ["ledger", "ბლოკჩეინი"]];
     if (role === "student") links.push(["student", "ჩემი პასპორტი"]);
     if (role === "admin") links.push(["admin", "ადმინისტრირება"]);
     $("nav").innerHTML = links.map(([id, label]) => '<a href="#' + id + '" data-route="' + id + '"' + (ui.route === id ? ' aria-current="page"' : "") + ">" + label + "</a>").join("");
@@ -226,6 +226,66 @@
   window.addEventListener("hashchange", go);
 
   const CHEVRONS = '<svg class="chev" viewBox="0 0 400 520" aria-hidden="true" fill="none" stroke="#fff" stroke-width="34"><path d="M20 20 L200 200 L380 20"/><path d="M20 180 L200 360 L380 180"/><path d="M20 340 L200 520 L380 340"/></svg>';
+
+  // ------------------------------------------------------------ home (welcome)
+  function renderHome() {
+    const c = core.q.counts();
+    const skills = core.q.skills();
+    const sample = core.q.passports().find((p) => p.verification_code);
+    const tiers = [
+      { cat: "AI Skill", cls: "st-skill", t: "AI SKILL", s: "FOCUSED LEARNING", how: "ვორქშოფი, მასტერკლასი, სემინარი ან სხვა მოკლე ფორმატი", what: "კონკრეტული AI კომპეტენციის განვითარება" },
+      { cat: "AI Applied Skill", cls: "st-applied", t: "AI APPLIED SKILL", s: "APPLIED LEARNING", how: "2–3 დღიანი ინტენსივი, ბუთქემპი, ჰაკათონი ან ჩელენჯი", what: "AI კომპეტენციის პრაქტიკული გამოყენება" },
+      { cat: "AI Advanced Skill", cls: "st-adv", t: "AI ADVANCED SKILL", s: "EXTENDED ACADEMIC LEARNING", how: "სემესტრული აკადემიური კურსი შეფასებით", what: "ხანგრძლივი და ფორმალურად შეფასებული განვითარება" },
+    ];
+    const stamp = (x, extra) => '<span class="hstamp ' + x.cls + (extra ? " " + extra : "") + '"><b>' + x.t + "</b><i>" + x.s + "</i></span>";
+    $("app").innerHTML =
+      '<section class="home-hero"><div class="wrap home-hero-in">' +
+        '<div class="home-copy">' +
+          '<span class="home-kicker"><span aria-hidden="true">✱</span> BTU · AI Skills Digital Passport</span>' +
+          '<h1 class="home-title">შენი AI უნარები.<br><em>დამოწმებული BTU-ის მიერ.</em></h1>' +
+          '<p class="home-lead">ერთი მუდმივი ციფრული პასპორტი, რომელიც სწავლასთან ერთად იზრდება. ყოველი ახალი უნარი ემატება როგორც შტამპი, ყოველი ვერსია კი ბლოკჩეინზეა დადასტურებული.</p>' +
+          '<form class="home-check" id="hc" novalidate><label for="hc-code" class="sr">ვერიფიკაციის კოდი</label><input id="hc-code" class="code" autocomplete="off" spellcheck="false" placeholder="BTUV-XXXX-XXXX-XXXX"><button class="btn primary" type="submit">შემოწმება</button></form>' +
+          '<p class="home-note">დამსაქმებელს რეგისტრაცია არ სჭირდება.' + (sample ? ' სცადე: <button type="button" class="linklike mono" id="hc-sample">' + esc(sample.verification_code) + "</button>" : "") + "</p>" +
+          '<div class="row" style="gap:12px;margin-top:6px"><a class="btn light" href="#login">სტუდენტის შესვლა</a><a class="btn ghost-light" href="#ledger">ბლოკჩეინის რეესტრი →</a></div>' +
+        "</div>" +
+        '<div class="home-visual" aria-hidden="true"><div class="pp-frame"><div class="pp-card">' +
+          '<div class="pp-stars">✱<br>✱<br>✱</div>' +
+          '<div class="pp-h1">AI SKILLS</div><div class="pp-h2">DIGITAL PASSPORT</div><div class="pp-rule"></div>' +
+          '<div class="pp-row"><span>NAME:</span><i></i></div><div class="pp-row"><span>SURNAME:</span><i></i></div>' +
+          '<div class="pp-tag">AI SKILLS<br><b>DIGITAL PASSPORT</b></div>' +
+          '<div class="pp-stamps">' + stamp(tiers[1], "d1") + stamp(tiers[0], "d2") + stamp(tiers[2], "d3") + "</div>" +
+        "</div></div>" +
+        '<div class="pp-chip"><span class="ok-dot">✓</span><span><b>დადასტურებულია ბლოკჩეინზე</b>გამცემი: BTU · did:web:btu.edu.ge</span></div></div>' +
+      "</div></section>" +
+
+      '<section class="home-band"><div class="wrap home-stats">' +
+        '<div><b class="num">' + c.passports + '</b><span>გაცემული პასპორტი</span></div>' +
+        '<div><b class="num">' + c.versions + '</b><span>ვერსია ბლოკჩეინზე</span></div>' +
+        '<div><b class="num">' + skills.length + '</b><span>AI უნარი კატალოგში</span></div>' +
+        '<div><b>3</b><span>შტამპის ტიპი</span></div>' +
+      "</div></section>" +
+
+      '<section class="wrap home-sec"><h2 class="home-h2">როგორ იზრდება პასპორტი</h2>' +
+        '<ol class="home-steps">' +
+          "<li><b>ისწავლე</b><span>გაიარე ვორქშოფი, ჰაკათონი ან AI კურსი BTU-ში.</span></li>" +
+          "<li><b>BTU ადასტურებს</b><span>შედეგი Google Sheet-ში ან Excel-ით ემატება. ხელით აწყობა არ სჭირდება.</span></li>" +
+          "<li><b>პასპორტი ახლდება</b><span>იგივე Passport ID, ახალი ვერსია: უნარი, შტამპი, თარიღი და აღწერა.</span></li>" +
+          "<li><b>ნებისმიერი ამოწმებს</b><span>კოდით ან PDF-ით, ბლოკჩეინზე, რეგისტრაციის გარეშე.</span></li>" +
+        "</ol></section>" +
+
+      '<section class="wrap home-sec"><h2 class="home-h2">სამი ტიპის შტამპი</h2><p class="home-sub">შტამპები სხვადასხვა სწავლების ფორმატს და სიღრმეს აღნიშნავს. ისინი სავალდებულო თანმიმდევრობა არ არის.</p>' +
+        '<div class="home-tiers">' + tiers.map((x) => '<div class="tier-card">' + stamp(x) + "<h3>" + x.cat + "</h3><p><span>როგორ:</span> " + x.how + "</p><p><span>ნიშნავს:</span> " + x.what + '</p><p class="muted small">' + skills.filter((s) => s.category === x.cat).length + " უნარი კატალოგში</p></div>").join("") + "</div></section>" +
+
+      '<section class="wrap home-sec"><h2 class="home-h2">ვისთვის</h2><div class="home-who">' +
+        '<a class="who-card" href="#login"><span class="who-k">სტუდენტი</span><h3>შენი პასპორტი ერთ ადგილას</h3><p>შედი BTU ელფოსტით, ნახე და ჩამოტვირთე PDF, ნახე ვერსიების ისტორია და გაუზიარე კოდი დამსაქმებელს.</p><span class="who-go">შესვლა →</span></a>' +
+        '<a class="who-card" href="#verify"><span class="who-k">დამსაქმებელი</span><h3>ნამდვილობა წამებში</h3><p>შეიყვანე კოდი ან ატვირთე PDF. სისტემა ამოწმებს, რომ დოკუმენტი არ შეცვლილა და რომ გამცემი ნამდვილად BTU-ა.</p><span class="who-go">შემოწმება →</span></a>' +
+        '<a class="who-card" href="#login"><span class="who-k">BTU</span><h3>ათასობით პასპორტი ავტომატურად</h3><p>შედეგები Sheet-იდან ან Excel-იდან, PDF BTU-ის შაბლონში, ვერსიები და ბლოკჩეინი, ერთი ღილაკით.</p><span class="who-go">ადმინისტრირება →</span></a>' +
+      "</div></section>";
+
+    const check = (code) => { ui.pendingCode = code; ui.verify = null; location.hash = "#verify"; };
+    $("hc").onsubmit = (e) => { e.preventDefault(); const v = $("hc-code").value.trim(); if (!v) { $("hc-code").focus(); return; } check(v); };
+    if ($("hc-sample")) $("hc-sample").onclick = () => check(sample.verification_code);
+  }
 
   // ------------------------------------------------------------ verify (public)
   function renderVerify() {
@@ -248,7 +308,8 @@
     const form = $("vf");
     form.onsubmit = async (e) => { e.preventDefault(); await runVerify(); };
     form.querySelectorAll("[data-sample]").forEach((b) => (b.onclick = () => { $("v-code").value = b.dataset.sample; $("v-file").value = ""; runVerify(); }));
-    if (ui.verify && ui.verify.result) showVerifyResult(ui.verify.result, ui.verify.file);
+    if (ui.pendingCode) { $("v-code").value = ui.pendingCode; ui.pendingCode = null; runVerify().then(() => { const r = $("v-result"); if (r && r.scrollIntoView) r.scrollIntoView({ behavior: "smooth", block: "start" }); }); }
+    else if (ui.verify && ui.verify.result) showVerifyResult(ui.verify.result, ui.verify.file);
   }
   function howItWorks() {
     return '<div class="grid3">' +

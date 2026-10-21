@@ -5,7 +5,7 @@
 <meta name="description" content="BTU AI Skills Digital Passport: automatic passport generation from Google Sheets, versioning and blockchain verification.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Noto+Sans+Georgian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;900&family=Figtree:wght@400;500;600;700;800&family=Noto+Sans+Georgian:wght@400;500;600;700;800;900&display=swap">
 <style>
 /* Layout: btumobility.ge style. White header, magenta-to-indigo hero, light grey canvas, white rounded cards with a gradient top edge. */
 :root {
@@ -185,12 +185,98 @@ details.sql pre { background: #0F172A; color: #E2E8F0; border-radius: 10px; padd
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; z-index: 40; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0, 0, 0, .2); }
 .loading { padding-block: 80px; text-align: center; color: var(--muted); }
 footer.site { border-top: 1px solid var(--line); background: var(--surface); }
+/* ---------- Welcome page: passport-template look (dark frame, orange asterisks, stamps) ---------- */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.home-hero { background: #1B171F; color: #F4F1F6; position: relative; overflow: hidden; }
+.home-hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 80% at 85% 20%, rgba(229, 0, 125, .28), transparent 60%), radial-gradient(50% 60% at 10% 100%, rgba(255, 106, 0, .16), transparent 60%); }
+.home-hero-in { position: relative; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 48px; align-items: center; padding-block: 64px 72px; }
+@media (max-width: 920px) { .home-hero-in { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-block: 44px 56px; } }
+.home-kicker { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #FFB27A; }
+.home-kicker span { color: #FF6A00; font-size: 18px; }
+.home-title { font-family: "Archivo", "Noto Sans Georgian", var(--f-body); font-weight: 900; font-size: clamp(34px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -.02em; margin: 18px 0 0; }
+.home-title em { font-style: normal; color: #FF4FA7; }
+.home-lead { font-size: 18px; line-height: 1.6; color: #CFC7D6; max-width: 54ch; margin: 18px 0 0; }
+.home-check { margin-top: 28px; display: flex; gap: 8px; max-width: 520px; background: #fff; padding: 6px; border-radius: 12px; }
+.home-check input { border: 0; font-size: 16px; padding: 10px 12px; min-width: 0; flex: 1; }
+.home-check input:focus { outline: none; }
+.home-check:focus-within { box-shadow: 0 0 0 3px rgba(255, 79, 167, .55); }
+.home-note { font-size: 13px; color: #A99FB2; margin: 10px 0 0; }
+.linklike { all: unset; cursor: pointer; color: #FF8BC4; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; }
+.linklike:focus-visible { outline: 2px solid #FF8BC4; }
+.btn.ghost-light { background: transparent; border-color: rgba(255, 255, 255, .28); color: #F4F1F6; }
+.btn.ghost-light:hover { background: rgba(255, 255, 255, .08); }
+.home-visual { position: relative; max-width: 560px; width: 100%; justify-self: center; }
+.pp-frame { background: #2C2C2C; border: 1px solid #4A4A4A; border-radius: 22px; padding: 16px; transform: rotate(-2.5deg); box-shadow: 0 30px 60px rgba(0, 0, 0, .45); }
+.pp-card { background: #fff; color: #111; border-radius: 14px; aspect-ratio: 1.41; position: relative; padding: 7% 7% 0; overflow: hidden; container-type: inline-size; }
+.pp-h1 { font-family: "Archivo", var(--f-body); font-weight: 900; font-size: 11.5cqw; line-height: .9; letter-spacing: -.02em; }
+.pp-h2 { font-family: "Archivo", var(--f-body); font-weight: 300; font-size: 8.2cqw; line-height: 1; margin-top: 1cqw; }
+.pp-rule { height: 1px; background: #111; margin: 4cqw 0 4cqw; width: 88%; }
+.pp-row { display: flex; gap: 2cqw; align-items: end; font-family: "Archivo", var(--f-body); font-weight: 900; font-size: 4.2cqw; margin-bottom: 2.6cqw; }
+.pp-row i { flex: 0 0 30%; border-bottom: 1px solid #bbb; height: 3cqw; }
+.pp-stars { position: absolute; right: 6%; top: 7%; color: #FF6A00; font-size: 7cqw; line-height: .95; text-align: center; }
+.pp-tag { position: absolute; left: 7%; bottom: 8%; background: #FF6A00; color: #111; font-family: "Archivo", var(--f-body); font-weight: 400; font-size: 3.4cqw; line-height: 1.05; padding: 1.2cqw 2cqw; }
+.pp-tag b { font-weight: 900; }
+.pp-stamps { position: absolute; right: 4%; bottom: 7%; width: 56%; height: 48%; }
+.hstamp { display: inline-grid; place-items: center; text-align: center; color: #fff; padding: .55em .9em; line-height: 1.1; border-radius: 2px; font-family: "Archivo", var(--f-body); }
+.hstamp b { font-weight: 900; font-size: 1em; letter-spacing: .02em; white-space: nowrap; }
+.hstamp i { font-style: normal; font-weight: 400; font-size: .62em; letter-spacing: .04em; white-space: nowrap; }
+.hstamp.st-skill { background: #FF3F3F; outline: 1.5px dashed rgba(255, 255, 255, .9); outline-offset: -5px; }
+.hstamp.st-applied { background: #5E00FF; }
+.hstamp.st-applied i { border-top: 1px solid rgba(255, 255, 255, .8); border-bottom: 1px solid rgba(255, 255, 255, .8); padding: 1px 0; margin-top: 2px; }
+.hstamp.st-adv { background: #07207E; outline: 1px solid rgba(255, 255, 255, .85); outline-offset: -4px; }
+.pp-stamps .hstamp { position: absolute; font-size: 2.7cqw; box-shadow: 0 2px 6px rgba(0, 0, 0, .15); }
+.pp-stamps .d1 { right: 4%; top: 2%; transform: rotate(-7deg); animation: land 0.55s cubic-bezier(.2, .9, .3, 1.25) .25s both; }
+.pp-stamps .d2 { left: 0; top: 36%; transform: rotate(6deg); animation: land 0.55s cubic-bezier(.2, .9, .3, 1.25) .7s both; }
+.pp-stamps .d3 { right: 0; bottom: 4%; transform: rotate(-3deg); animation: land 0.55s cubic-bezier(.2, .9, .3, 1.25) 1.15s both; }
+@keyframes land { from { scale: 1.6; translate: 0 -18px; } 70% { scale: .96; } to { scale: 1; translate: 0 0; } }
+.pp-chip { position: absolute; left: -4%; bottom: -26px; display: flex; gap: 10px; align-items: center; background: #fff; color: var(--ink); border-radius: 12px; padding: 10px 14px; box-shadow: 0 12px 30px rgba(0, 0, 0, .35); font-size: 12.5px; line-height: 1.3; max-width: 90%; animation: rise .5s ease-out 1.6s both; }
+.pp-chip b { display: block; font-size: 13.5px; }
+.ok-dot { width: 26px; height: 26px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-weight: 800; flex: none; }
+@keyframes rise { from { translate: 0 10px; } to { translate: 0 0; } }
+@media (max-width: 520px) { .pp-chip { left: 0; } }
+@media (prefers-reduced-motion: reduce) { .pp-stamps .hstamp, .pp-chip { animation: none; } }
+
+.home-band { background: #FF6A00; color: #1B171F; }
+.home-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding-block: 22px; }
+.home-stats div { display: grid; gap: 2px; }
+.home-stats b { font-family: "Archivo", var(--f-body); font-weight: 900; font-size: 34px; line-height: 1; }
+.home-stats span { font-weight: 600; font-size: 14px; }
+@media (max-width: 700px) { .home-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.home-sec { padding-block: 56px 8px; }
+.home-h2 { font-family: "Archivo", "Noto Sans Georgian", var(--f-body); font-weight: 900; font-size: clamp(24px, 3.2vw, 34px); letter-spacing: -.01em; }
+.home-sub { color: var(--muted); max-width: 64ch; margin: 8px 0 0; }
+.home-steps { list-style: none; counter-reset: st; margin: 26px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-top: 2px solid var(--ink); }
+.home-steps li { counter-increment: st; padding: 18px 20px 6px 0; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.home-steps li::before { content: "0" counter(st); font-family: "Archivo", var(--f-body); font-weight: 900; font-size: 15px; color: #FF6A00; }
+.home-steps b { font-size: 18px; }
+.home-steps span { color: var(--ink-2); font-size: 14.5px; }
+@media (max-width: 860px) { .home-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .home-steps { grid-template-columns: minmax(0, 1fr); } }
+.home-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 24px; }
+@media (max-width: 860px) { .home-tiers { grid-template-columns: minmax(0, 1fr); } }
+.tier-card { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 22px; display: grid; gap: 8px; align-content: start; }
+.tier-card .hstamp { justify-self: start; font-size: 14px; transform: rotate(-3deg); margin-bottom: 8px; }
+.tier-card h3 { font-size: 18px; }
+.tier-card p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+.tier-card p span { font-weight: 700; color: var(--ink); }
+.home-who { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 24px 0 40px; }
+@media (max-width: 860px) { .home-who { grid-template-columns: minmax(0, 1fr); } }
+.who-card { display: grid; gap: 8px; align-content: start; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-left: 4px solid #1B171F; padding: 22px; border-radius: 4px; transition: border-color .15s, transform .15s; }
+.who-card:hover { border-left-color: #FF6A00; transform: translateY(-2px); }
+.who-card:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+.who-k { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #C2410C; }
+.who-card h3 { font-size: 19px; }
+.who-card p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+.who-go { font-weight: 700; color: var(--pink-deep); margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .who-card { transition: none; } .who-card:hover { transform: none; } }
+
 footer.site .wrap { padding-block: 22px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; font-size: 13px; color: var(--muted); }
 </style>
 
 <header class="site">
   <div class="wrap head-in">
-    <a class="logo" href="#verify" aria-label="BTU AI Skills Digital Passport">
+    <a class="logo" href="#home" aria-label="BTU AI Skills Digital Passport">
       <span class="logo-mark">BTU</span>
       <span class="logo-text">AI Skills Digital Passport<span>Business &amp; Technology University</span></span>
     </a>
