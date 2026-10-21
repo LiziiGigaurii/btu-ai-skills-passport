@@ -37,10 +37,14 @@
     },
   };
 
+  // Stamp designs (BTU passport design, October 2026):
+  //   AI Skill          red triangle      "AI SKILL / FOCUSED LEARNING"
+  //   AI Applied Skill  purple tilted bar "AI APPLIED SKILL / APPLIED LEARNING"
+  //   AI Advanced Skill navy round seal   "AI ADVANCED SKILL / EXTENDED ACADEMIC LEARNING"
   const STAMP = {
-    "AI Skill": { color: [255, 63, 63], title: "AI SKILL", sub: "FOCUSED LEARNING", angle: 6, style: "dashed" },
-    "AI Applied Skill": { color: [94, 0, 255], title: "AI APPLIED SKILL", sub: "APPLIED LEARNING", angle: 4, style: "lines" },
-    "AI Advanced Skill": { color: [7, 32, 126], title: "AI ADVANCED SKILL", sub: "EXTENDED ACADEMIC LEARNING", angle: 3, style: "double" },
+    "AI Skill": { color: [255, 59, 59], title: "AI SKILL", sub: "FOCUSED LEARNING", angle: -4, shape: "triangle" },
+    "AI Applied Skill": { color: [94, 0, 255], title: "AI APPLIED SKILL", sub: "APPLIED LEARNING", angle: 6, shape: "bar" },
+    "AI Advanced Skill": { color: [20, 36, 120], title: "AI ADVANCED SKILL", sub: "EXTENDED ACADEMIC LEARNING", angle: 0, shape: "seal" },
   };
 
   const fmtDate = (iso) => { const [y, m, d] = String(iso).slice(0, 10).split("-"); return d + "." + m + "." + y; };
@@ -70,31 +74,59 @@
     }
   }
 
+  // Centered text stack in the stamp's local coordinates (origin = stamp centre, y up).
+  function stack(page, items, white, yTop) {
+    let y = yTop;
+    for (const it of items) {
+      y -= it.size;
+      const w = it.font.widthOfTextAtSize(it.text, it.size);
+      page.drawText(it.text, { x: -w / 2, y, size: it.size, font: it.font, color: white });
+      y -= it.gap == null ? it.size * 0.18 : it.gap;
+    }
+  }
+
   function drawStamp(PDFLib, page, fonts, category, cx, cyTop, scale) {
     const { rgb, pushGraphicsState, popGraphicsState, translate, rotateDegrees } = PDFLib;
     const st = STAMP[category];
     if (!st) return;
     const s = scale || 1;
-    const w = 118 * s, h = 34 * s;
     const col = rgb(st.color[0] / 255, st.color[1] / 255, st.color[2] / 255);
     const white = rgb(1, 1, 1);
     page.pushOperators(pushGraphicsState(), translate(cx, Y(cyTop)), rotateDegrees(st.angle));
-    page.drawRectangle({ x: -w / 2, y: -h / 2, width: w, height: h, color: col });
-    if (st.style === "dashed") {
-      page.drawRectangle({ x: -w / 2 + 3 * s, y: -h / 2 + 3 * s, width: w - 6 * s, height: h - 6 * s, borderColor: white, borderWidth: 0.8 * s, borderDashArray: [3 * s, 2 * s] });
-    } else if (st.style === "double") {
-      page.drawRectangle({ x: -w / 2 + 2.5 * s, y: -h / 2 + 2.5 * s, width: w - 5 * s, height: h - 5 * s, borderColor: white, borderWidth: 0.7 * s });
-    }
-    const tSize = (category === "AI Advanced Skill" ? 8.6 : 10.5) * s;
-    const sSize = (category === "AI Advanced Skill" ? 5.6 : 7.2) * s;
-    const tW = fonts.bold.widthOfTextAtSize(st.title, tSize);
-    const sW = fonts.reg.widthOfTextAtSize(st.sub, sSize);
-    page.drawText(st.title, { x: -tW / 2, y: 1.2 * s, size: tSize, font: fonts.bold, color: white });
-    page.drawText(st.sub, { x: -sW / 2, y: -8.2 * s, size: sSize, font: fonts.reg, color: white });
-    if (st.style === "lines") {
-      const lw = Math.max(tW, sW) + 6 * s;
-      page.drawLine({ start: { x: -lw / 2, y: -1.4 * s }, end: { x: lw / 2, y: -1.4 * s }, thickness: 0.5 * s, color: white });
-      page.drawLine({ start: { x: -lw / 2, y: -10.6 * s }, end: { x: lw / 2, y: -10.6 * s }, thickness: 0.5 * s, color: white });
+    if (st.shape === "triangle") {
+      // SVG path coordinates (y down) relative to the centre.
+      const w = 64 * s, h = 54 * s, top = -h * 0.52;
+      page.drawSvgPath("M 0 " + top + " L " + w / 2 + " " + (top + h) + " L " + -w / 2 + " " + (top + h) + " Z", { x: 0, y: 0, color: col });
+      const k = 9 * s; // inner chevron parallel to the two upper edges
+      page.drawSvgPath("M " + -k + " " + (top + 2.3 * k) + " L 0 " + (top + 0.8 * k) + " L " + k + " " + (top + 2.3 * k), { x: 0, y: 0, borderColor: white, borderWidth: 0.7 * s });
+      stack(page, [
+        { text: "AI", font: fonts.bold, size: 6.2 * s, gap: 0.6 * s },
+        { text: "SKILL", font: fonts.bold, size: 6.2 * s, gap: 1.4 * s },
+        { text: "FOCUSED", font: fonts.reg, size: 3.9 * s, gap: 0.5 * s },
+        { text: "LEARNING", font: fonts.reg, size: 3.9 * s },
+      ], white, 4.5 * s);
+    } else if (st.shape === "seal") {
+      const r = 27 * s;
+      page.drawCircle({ x: 0, y: 0, size: r, color: col });
+      page.drawCircle({ x: 0, y: 0, size: r - 2.6 * s, borderColor: white, borderWidth: 0.6 * s });
+      stack(page, [
+        { text: "AI", font: fonts.bold, size: 4.6 * s, gap: 0.5 * s },
+        { text: "ADVANCED", font: fonts.bold, size: 4.6 * s, gap: 0.5 * s },
+        { text: "SKILL", font: fonts.bold, size: 4.6 * s, gap: 1.6 * s },
+        { text: "EXTENDED", font: fonts.reg, size: 3.3 * s, gap: 0.4 * s },
+        { text: "ACADEMIC", font: fonts.reg, size: 3.3 * s, gap: 0.4 * s },
+        { text: "LEARNING", font: fonts.reg, size: 3.3 * s },
+      ], white, 14.6 * s);
+    } else {
+      const w = 112 * s, h = 32 * s;
+      page.drawRectangle({ x: -w / 2, y: -h / 2, width: w, height: h, color: col });
+      page.drawRectangle({ x: -w / 2 + 2.5 * s, y: -h / 2 + 2.5 * s, width: w - 5 * s, height: h - 5 * s, borderColor: white, borderWidth: 0.6 * s });
+      const tSize = 10 * s, sSize = 7 * s;
+      const tW = fonts.bold.widthOfTextAtSize(st.title, tSize);
+      const sW = fonts.reg.widthOfTextAtSize(st.sub, sSize);
+      page.drawText(st.title, { x: -tW / 2, y: 1.4 * s, size: tSize, font: fonts.bold, color: white });
+      page.drawText(st.sub, { x: -sW / 2, y: -7.6 * s, size: sSize, font: fonts.reg, color: white });
+      page.drawLine({ start: { x: -sW / 2, y: -9.2 * s }, end: { x: sW / 2, y: -9.2 * s }, thickness: 0.5 * s, color: white });
     }
     page.pushOperators(popGraphicsState());
   }
@@ -151,12 +183,13 @@
         const date = fmtDate(sk.dateEarned);
         const dw = fonts.reg.widthOfTextAtSize(date, 7);
         page.drawText(date, { x: x0 + (x1 - x0 - dw) / 2, y: Y(t0 + 14), size: 7, font: fonts.reg, color: grey });
-        drawStamp(PDFLib, page, fonts, sk.category, (x0 + x1) / 2, t0 + 50, 0.92);
+        page.drawLine({ start: { x: x0 + 4, y: Y(t0 + 20) }, end: { x: x1 - 4, y: Y(t0 + 20) }, thickness: 0.6, color: rgb(0.8, 0.8, 0.8) });
+        drawStamp(PDFLib, page, fonts, sk.category, (x0 + x1) / 2, t0 + 56, 0.95);
         const nameLines = wrap(sk.name.toUpperCase(), fonts.bold, 8, x1 - x0 - 14).slice(0, 4);
-        centeredBlock(page, nameLines, fonts.bold, 8, x0, x1, t0 + 102, black, 9.4);
+        centeredBlock(page, nameLines, fonts.bold, 8, x0, x1, t0 + 108, black, 9.4);
         const cat = sk.category.toUpperCase();
         const cw = fonts.reg.widthOfTextAtSize(cat, 7);
-        page.drawText(cat, { x: x0 + (x1 - x0 - cw) / 2, y: Y(t0 + 102 + nameLines.length * 4.7 + 9), size: 7, font: fonts.reg, color: black });
+        page.drawText(cat, { x: x0 + (x1 - x0 - cw) / 2, y: Y(t0 + 108 + nameLines.length * 4.7 + 9), size: 7, font: fonts.reg, color: black });
       });
     }
 
@@ -170,7 +203,7 @@
         const [r0, r1] = T.table.rows[i];
         const mid = (r0 + r1) / 2;
         page.drawRectangle({ x: tc.stamp[0] + 2, y: Y(r1 - 2), width: tc.stamp[1] - tc.stamp[0] - 4, height: r1 - r0 - 4, color: white });
-        drawStamp(PDFLib, page, fonts, sk.category, (tc.stamp[0] + tc.stamp[1]) / 2, mid, 0.86);
+        drawStamp(PDFLib, page, fonts, sk.category, (tc.stamp[0] + tc.stamp[1]) / 2, mid, 0.84);
         centeredBlock(page, wrap(sk.name.toUpperCase(), fonts.bold, 7.4, tc.skill[1] - tc.skill[0] - 8).slice(0, 4), fonts.bold, 7.4, tc.skill[0], tc.skill[1], mid, black, 8.8);
         centeredBlock(page, wrap(sk.description.toUpperCase(), fonts.reg, 5.4, tc.desc[1] - tc.desc[0] - 10).slice(0, 6), fonts.reg, 5.4, tc.desc[0], tc.desc[1], mid, black, 6.6);
         centeredBlock(page, wrap(sk.earnedThrough.toUpperCase(), fonts.reg, 6.4, tc.through[1] - tc.through[0] - 12).slice(0, 3), fonts.reg, 6.4, tc.through[0], tc.through[1], mid, black, 7.8);

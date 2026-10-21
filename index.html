@@ -263,10 +263,16 @@ footer.site { border-top: 1px solid var(--line); background: var(--surface); }
 .hstamp { display: inline-grid; place-items: center; text-align: center; color: #fff; padding: .55em .9em; line-height: 1.1; border-radius: 2px; font-family: "Archivo", var(--f-body); }
 .hstamp b { font-weight: 900; font-size: 1em; letter-spacing: .02em; white-space: nowrap; }
 .hstamp i { font-style: normal; font-weight: 400; font-size: .62em; letter-spacing: .04em; white-space: nowrap; }
-.hstamp.st-skill { background: #FF3F3F; outline: 1.5px dashed rgba(255, 255, 255, .9); outline-offset: -5px; }
-.hstamp.st-applied { background: #5E00FF; }
-.hstamp.st-applied i { border-top: 1px solid rgba(255, 255, 255, .8); border-bottom: 1px solid rgba(255, 255, 255, .8); padding: 1px 0; margin-top: 2px; }
-.hstamp.st-adv { background: #07207E; outline: 1px solid rgba(255, 255, 255, .85); outline-offset: -4px; }
+.hstamp.st-skill { background: #FF3B3B; clip-path: polygon(50% 0, 100% 100%, 0 100%); width: 6.6em; height: 5.7em; padding: 2.35em 0 0; align-content: start; gap: .15em; border-radius: 0; }
+.hstamp.st-skill::before { content: ""; position: absolute; left: 50%; top: 1.05em; width: .85em; height: .85em; border-left: 1px solid rgba(255, 255, 255, .9); border-top: 1px solid rgba(255, 255, 255, .9); transform: translateX(-50%) rotate(45deg); }
+.hstamp.st-skill b { white-space: normal; width: 3.2em; font-size: .92em; line-height: 1.05; }
+.hstamp.st-skill i { white-space: normal; width: 6em; font-size: .5em; line-height: 1.1; }
+.hstamp.st-applied { background: #5E00FF; outline: 1px solid rgba(255, 255, 255, .85); outline-offset: -4px; }
+.hstamp.st-applied i { border-bottom: 1px solid rgba(255, 255, 255, .85); padding-bottom: 1px; margin-top: 2px; justify-self: center; }
+.hstamp.st-adv { background: #142478; border-radius: 50%; width: 5.8em; height: 5.8em; padding: 0; align-content: center; gap: .3em; outline: 1px solid rgba(255, 255, 255, .85); outline-offset: -4px; }
+.hstamp.st-adv b { white-space: normal; width: 4.4em; font-size: .72em; line-height: 1.05; }
+.hstamp.st-adv i { white-space: normal; width: 6.2em; font-size: .46em; line-height: 1.15; }
+.tier-card .hstamp { position: relative; }
 .pp-stamps .hstamp { position: absolute; font-size: 2.7cqw; box-shadow: 0 2px 6px rgba(0, 0, 0, .15); }
 .pp-stamps .d1 { right: 4%; top: 2%; transform: rotate(-7deg); animation: land 0.55s cubic-bezier(.2, .9, .3, 1.25) .25s both; }
 .pp-stamps .d2 { left: 0; top: 36%; transform: rotate(6deg); animation: land 0.55s cubic-bezier(.2, .9, .3, 1.25) .7s both; }
@@ -300,6 +306,7 @@ footer.site { border-top: 1px solid var(--line); background: var(--surface); }
 @media (max-width: 860px) { .home-tiers { grid-template-columns: minmax(0, 1fr); } }
 .tier-card { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 22px; display: grid; gap: 8px; align-content: start; }
 .tier-card .hstamp { justify-self: start; font-size: 14px; transform: rotate(-3deg); margin-bottom: 8px; }
+.tier-card .hstamp.st-skill, .tier-card .hstamp.st-adv { transform: none; }
 .tier-card h3 { font-size: 18px; }
 .tier-card p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
 .tier-card p span { font-weight: 700; color: var(--ink); }

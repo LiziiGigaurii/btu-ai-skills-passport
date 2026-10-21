@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const KEYS = { db: "btu-ap-db-v1", issuer: "btu-ap-issuer-v1", sheet: "btu-ap-sheet-v1", source: "btu-ap-source-v1" };
+  const KEYS = { db: "btu-ap-db-v2", issuer: "btu-ap-issuer-v1", sheet: "btu-ap-sheet-v2", source: "btu-ap-source-v1" };
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
