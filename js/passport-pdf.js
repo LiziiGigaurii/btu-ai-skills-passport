@@ -27,6 +27,13 @@
     // "PASSPORT ID:" label positions per template page (value goes after/below)
     idAfter: { 2: { x: 153, base: 491 }, 4: { x: 153, base: 491 } },
     idBelow: { 1: { x: 684, base: 510 }, 3: { x: 684, base: 510 } },
+    // Page 2 legend: the template still prints the old stamp icons, so they are
+    // covered and redrawn in the current design. box = [x0, top, x1, bottom].
+    legend: [
+      { category: "AI Skill", box: [449, 125.5, 540, 156.5], cx: 494.5, cy: 140, scale: 0.68 },
+      { category: "AI Applied Skill", box: [673.5, 127.5, 764, 157], cx: 719, cy: 142, scale: 0.78 },
+      { category: "AI Advanced Skill", box: [517.5, 278, 629, 308], cx: 573, cy: 293, scale: 0.72 },
+    ],
     grid: {
       cols: [[78, 208.5], [217.5, 348.5], [357.5, 487.9], [496.9, 627.9], [636.9, 767.4]],
       rows: [[138.5, 290.5], [300, 452]],
@@ -85,14 +92,14 @@
     }
   }
 
-  function drawStamp(PDFLib, page, fonts, category, cx, cyTop, scale) {
+  function drawStamp(PDFLib, page, fonts, category, cx, cyTop, scale, angle) {
     const { rgb, pushGraphicsState, popGraphicsState, translate, rotateDegrees } = PDFLib;
     const st = STAMP[category];
     if (!st) return;
     const s = scale || 1;
     const col = rgb(st.color[0] / 255, st.color[1] / 255, st.color[2] / 255);
     const white = rgb(1, 1, 1);
-    page.pushOperators(pushGraphicsState(), translate(cx, Y(cyTop)), rotateDegrees(st.angle));
+    page.pushOperators(pushGraphicsState(), translate(cx, Y(cyTop)), rotateDegrees(angle == null ? st.angle : angle));
     if (st.shape === "triangle") {
       // SVG path coordinates (y down) relative to the centre.
       const w = 64 * s, h = 54 * s, top = -h * 0.52;
@@ -170,6 +177,10 @@
 
     // ---- Page 2: about ----
     drawPassportId(pages[1], fonts, data.passportId, 2, black);
+    for (const L of T.legend) {
+      pages[1].drawRectangle({ x: L.box[0], y: Y(L.box[3]), width: L.box[2] - L.box[0], height: L.box[3] - L.box[1], color: white });
+      drawStamp(PDFLib, pages[1], fonts, L.category, L.cx, L.cy, L.scale, 0);
+    }
 
     // ---- Page 3 (+ continuation): verified skillset grid ----
     for (let g = 0; g < gridPages; g++) {
