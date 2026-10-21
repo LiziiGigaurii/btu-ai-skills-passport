@@ -231,7 +231,6 @@
   function renderHome() {
     const c = core.q.counts();
     const skills = core.q.skills();
-    const sample = core.q.passports().find((p) => p.verification_code);
     const tiers = [
       { cat: "AI Skill", cls: "st-skill", t: "AI SKILL", s: "FOCUSED LEARNING", how: "ვორქშოფი, მასტერკლასი, სემინარი ან სხვა მოკლე ფორმატი", what: "კონკრეტული AI კომპეტენციის განვითარება" },
       { cat: "AI Applied Skill", cls: "st-applied", t: "AI APPLIED SKILL", s: "APPLIED LEARNING", how: "2–3 დღიანი ინტენსივი, ბუთქემპი, ჰაკათონი ან ჩელენჯი", what: "AI კომპეტენციის პრაქტიკული გამოყენება" },
@@ -244,18 +243,9 @@
           '<span class="home-kicker"><span aria-hidden="true">✱</span> BTU · AI Skills Digital Passport</span>' +
           '<h1 class="home-title">შენი AI უნარები.<br><em>დამოწმებული BTU-ის მიერ.</em></h1>' +
           '<p class="home-lead">ერთი მუდმივი ციფრული პასპორტი, რომელიც სწავლასთან ერთად იზრდება. ყოველი ახალი უნარი ემატება როგორც შტამპი, ყოველი ვერსია კი ბლოკჩეინზეა დადასტურებული.</p>' +
-          '<form class="home-check" id="hc" novalidate><label for="hc-code" class="sr">ვერიფიკაციის კოდი</label><input id="hc-code" class="code" autocomplete="off" spellcheck="false" placeholder="BTUV-XXXX-XXXX-XXXX"><button class="btn primary" type="submit">შემოწმება</button></form>' +
-          '<p class="home-note">დამსაქმებელს რეგისტრაცია არ სჭირდება.' + (sample ? ' სცადე: <button type="button" class="linklike mono" id="hc-sample">' + esc(sample.verification_code) + "</button>" : "") + "</p>" +
-          '<div class="row" style="gap:12px;margin-top:6px"><a class="btn light" href="#login">სტუდენტის შესვლა</a><a class="btn ghost-light" href="#ledger">ბლოკჩეინის რეესტრი →</a></div>' +
+          '<div class="row" style="gap:12px;margin-top:28px"><a class="btn primary" href="#verify">პასპორტის შემოწმება</a><a class="btn light" href="#login">სტუდენტის შესვლა</a><a class="btn ghost-light" href="#ledger">ბლოკჩეინის რეესტრი →</a></div>' +
         "</div>" +
-        '<div class="home-visual" aria-hidden="true"><div class="pp-frame"><div class="pp-card">' +
-          '<div class="pp-stars">✱<br>✱<br>✱</div>' +
-          '<div class="pp-h1">AI SKILLS</div><div class="pp-h2">DIGITAL PASSPORT</div><div class="pp-rule"></div>' +
-          '<div class="pp-row"><span>NAME:</span><i></i></div><div class="pp-row"><span>SURNAME:</span><i></i></div>' +
-          '<div class="pp-tag">AI SKILLS<br><b>DIGITAL PASSPORT</b></div>' +
-          '<div class="pp-stamps">' + stamp(tiers[1], "d1") + stamp(tiers[0], "d2") + stamp(tiers[2], "d3") + "</div>" +
-        "</div></div>" +
-        '<div class="pp-chip"><span class="ok-dot">✓</span><span><b>დადასტურებულია ბლოკჩეინზე</b>გამცემი: BTU · did:web:btu.edu.ge</span></div></div>' +
+        passportVisual() +
       "</div></section>" +
 
       '<section class="home-band"><div class="wrap home-stats">' +
@@ -282,26 +272,42 @@
         '<a class="who-card" href="#login"><span class="who-k">BTU</span><h3>ათასობით პასპორტი ავტომატურად</h3><p>შედეგები Sheet-იდან ან Excel-იდან, PDF BTU-ის შაბლონში, ვერსიები და ბლოკჩეინი, ერთი ღილაკით.</p><span class="who-go">ადმინისტრირება →</span></a>' +
       "</div></section>";
 
-    const check = (code) => { ui.pendingCode = code; ui.verify = null; location.hash = "#verify"; };
-    $("hc").onsubmit = (e) => { e.preventDefault(); const v = $("hc-code").value.trim(); if (!v) { $("hc-code").focus(); return; } check(v); };
-    if ($("hc-sample")) $("hc-sample").onclick = () => check(sample.verification_code);
+  }
+  const TIER_STAMPS = [
+    { cls: "st-applied", t: "AI APPLIED SKILL", s: "APPLIED LEARNING" },
+    { cls: "st-skill", t: "AI SKILL", s: "FOCUSED LEARNING" },
+    { cls: "st-adv", t: "AI ADVANCED SKILL", s: "EXTENDED ACADEMIC LEARNING" },
+  ];
+  function passportVisual() {
+    const st = (x, d) => '<span class="hstamp ' + x.cls + " " + d + '"><b>' + x.t + "</b><i>" + x.s + "</i></span>";
+    return       '<div class="home-visual" aria-hidden="true"><div class="pp-frame"><div class="pp-card">' +
+          '<div class="pp-stars">✱<br>✱<br>✱</div>' +
+          '<div class="pp-h1">AI SKILLS</div><div class="pp-h2">DIGITAL PASSPORT</div><div class="pp-rule"></div>' +
+          '<div class="pp-row"><span>NAME:</span><i></i></div><div class="pp-row"><span>SURNAME:</span><i></i></div>' +
+          '<div class="pp-tag">AI SKILLS<br><b>DIGITAL PASSPORT</b></div>' +
+          '<div class="pp-stamps">' + st(TIER_STAMPS[0], "d1") + st(TIER_STAMPS[1], "d2") + st(TIER_STAMPS[2], "d3") + "</div>" +
+        "</div></div>" +
+      '<div class="pp-chip"><span class="ok-dot">✓</span><span><b>დადასტურებულია ბლოკჩეინზე</b>გამცემი: BTU · did:web:btu.edu.ge</span></div></div>';
   }
 
   // ------------------------------------------------------------ verify (public)
   function renderVerify() {
     const samples = core.q.passports().filter((p) => p.verification_code).slice(0, 3);
     $("app").innerHTML =
-      '<section class="hero">' + CHEVRONS + '<div class="wrap"><span class="eyebrow">Business &amp; Technology University</span>' +
-        '<h1>AI Skills Digital Passport-ის ვერიფიკაცია</h1>' +
-        '<p>შეიყვანეთ პასპორტის პირველ გვერდზე მითითებული ვერიფიკაციის კოდი. შემოწმება საჯაროა, რეგისტრაცია და ავტორიზაცია საჭირო არ არის.</p></div></section>' +
-      '<div class="wrap stack">' +
-        '<form class="card edge form lift" id="vf" novalidate>' +
-          '<div class="inline-form"><label class="f" for="v-code">ვერიფიკაციის კოდი<input class="code" id="v-code" autocomplete="off" spellcheck="false" placeholder="BTUV-XXXX-XXXX-XXXX" value="' + esc(ui.verify && ui.verify.code || "") + '"></label>' +
-          '<button class="btn primary" type="submit" id="v-go">შემოწმება</button></div>' +
-          '<div class="or">და/ან</div>' +
-          '<div class="drop"><label class="f" for="v-file" style="flex:1;min-width:220px">მიღებული PDF<span class="hint" style="font-weight:400">შემოწმდება, ზუსტად ემთხვევა თუ არა ფაილი ოფიციალურად გაცემულ ვერსიას</span></label><input type="file" id="v-file" accept="application/pdf,.pdf"></div>' +
-          (samples.length ? '<p class="hint" style="margin:0">სატესტო კოდები: ' + samples.map((p) => '<button type="button" class="btn ghost sm mono" data-sample="' + esc(p.verification_code) + '">' + esc(p.verification_code) + "</button>").join(" ") + "</p>" : "") +
-        "</form>" +
+      '<section class="home-hero"><div class="wrap home-hero-in">' +
+        '<div class="home-copy">' +
+          '<span class="home-kicker"><span aria-hidden="true">✱</span> საჯარო ვერიფიკაცია</span>' +
+          '<h1 class="home-title">შეამოწმე პასპორტი.<br><em>რეგისტრაციის გარეშე.</em></h1>' +
+          '<p class="home-lead">შეიყვანე პასპორტის ყდაზე დაბეჭდილი ვერიფიკაციის კოდი ან ატვირთე მიღებული PDF. სისტემა ბლოკჩეინზე ამოწმებს, რომ დოკუმენტი არ შეცვლილა და რომ გამცემი ნამდვილად BTU-ა.</p>' +
+          '<form id="vf" novalidate>' +
+            '<div class="home-check"><label for="v-code" class="sr">ვერიფიკაციის კოდი</label><input class="code" id="v-code" autocomplete="off" spellcheck="false" placeholder="BTUV-XXXX-XXXX-XXXX" value="' + esc(ui.verify && ui.verify.code || "") + '"><button class="btn primary" type="submit" id="v-go">შემოწმება</button></div>' +
+            '<div class="home-drop"><label for="v-file">ან ატვირთე PDF<span>შემოწმდება, ზუსტად ემთხვევა თუ არა ფაილი ოფიციალურ ვერსიას</span></label><input type="file" id="v-file" accept="application/pdf,.pdf"></div>' +
+            (samples.length ? '<p class="home-note">სატესტო კოდები: ' + samples.map((p) => '<button type="button" class="linklike mono" data-sample="' + esc(p.verification_code) + '">' + esc(p.verification_code) + "</button>").join(" · ") + "</p>" : "") +
+          "</form>" +
+        "</div>" +
+        passportVisual() +
+      "</div></section>" +
+      '<div class="wrap stack" style="padding-top:32px">' +
         '<div id="v-result" aria-live="polite"></div>' +
         howItWorks() +
       "</div>";
@@ -312,10 +318,11 @@
     else if (ui.verify && ui.verify.result) showVerifyResult(ui.verify.result, ui.verify.file);
   }
   function howItWorks() {
-    return '<div class="grid3">' +
-      '<div class="card"><h3>1. ოფიციალურად გაცემული</h3><p class="muted small" style="margin:6px 0 0">პასპორტის ყოველი ვერსიის PDF-ის SHA-256 hash გაცემისთანავე იწერება ბლოკჩეინზე.</p></div>' +
-      '<div class="card"><h3>2. შეუცვლელი</h3><p class="muted small" style="margin:6px 0 0">თუ PDF-ში შეიცვლება თუნდაც ერთი სიმბოლო (სახელი, უნარი, თარიღი), hash აღარ დაემთხვევა და ვერიფიკაცია ვერ გაივლის.</p></div>' +
-      '<div class="card"><h3>3. გამცემი არის BTU</h3><p class="muted small" style="margin:6px 0 0">ჩანაწერი ხელმოწერილია BTU-ის ციფრული გასაღებით (did:web:btu.edu.ge). ხელმოწერა საჯარო გასაღებით მოწმდება.</p></div></div>';
+    return '<section class="home-sec" style="padding-top:8px"><h2 class="home-h2">რას ამოწმებს სისტემა</h2><div class="home-tiers">' +
+      '<div class="tier-card"><span class="who-k">01 · დოკუმენტი</span><h3>ოფიციალურად გაცემული</h3><p>პასპორტის ყოველი ვერსიის PDF-ის SHA-256 hash გაცემისთანავე იწერება ბლოკჩეინზე.</p></div>' +
+      '<div class="tier-card"><span class="who-k">02 · შინაარსი</span><h3>შეუცვლელი</h3><p>თუ PDF-ში შეიცვლება თუნდაც ერთი სიმბოლო (სახელი, უნარი, თარიღი), hash აღარ დაემთხვევა და ვერიფიკაცია ვერ გაივლის.</p></div>' +
+      '<div class="tier-card"><span class="who-k">03 · გამცემი</span><h3>გამცემი არის BTU</h3><p>ჩანაწერი ხელმოწერილია BTU-ის ციფრული გასაღებით (did:web:btu.edu.ge). ხელმოწერა საჯარო გასაღებით მოწმდება.</p></div>' +
+      "</div></section>";
   }
   async function runVerify() {
     const code = $("v-code").value.trim();
