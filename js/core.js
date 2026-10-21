@@ -210,10 +210,15 @@
            WHERE skill_id <> '' AND badge_code <> 'CHECK CATEGORY' GROUP BY skill_id
            ON CONFLICT(skill_id) DO NOTHING`);
     }
+    // Enrollment rows (Record ID "ENR-…") carry only the student: they create a blank passport.
+    const isEnrollment = (r) => /^ENR-/i.test(r.record_id) && !r.skill_id;
     function validate(r) {
-      const req = { student_id: "A", first_name: "B", last_name: "C", email: "D", program: "E", education_level: "F", student_status: "I", record_id: "J", skill_id: "K", skill_name: "L", category: "M", description: "O", date_earned: "P" };
+      const req = isEnrollment(r)
+        ? { student_id: "A", first_name: "B", last_name: "C", email: "D", record_id: "J" }
+        : { student_id: "A", first_name: "B", last_name: "C", email: "D", student_status: "I", record_id: "J", skill_id: "K", skill_name: "L", category: "M", description: "O", date_earned: "P" };
       const missing = Object.keys(req).filter((k) => !r[k]).map((k) => req[k]);
       if (missing.length) return "Missing required column(s): " + missing.join(", ");
+      if (isEnrollment(r)) return emailRe.test(r.email) ? null : "Invalid BTU email";
       if (!CATEGORIES[r.category]) return "Invalid Skill Category: " + r.category;
       if (!isoDate.test(r.date_earned)) return "Date Earned must be YYYY-MM-DD";
       if (!emailRe.test(r.email)) return "Invalid BTU email";
@@ -258,7 +263,7 @@
         const v = Number(String(r0.synced_version).replace(/\D/g, "")) || 1;
         const issuedAt = parseUtc(r0.synced_at) || "2026-10-17T10:00:00.000Z";
         const { p } = ensurePassport(r0, issuedAt);
-        grp.forEach((r) => run("INSERT OR IGNORE INTO passport_skills (record_id, passport_id, skill_id, date_earned, added_in_version) VALUES (?, ?, ?, ?, ?)", [r.record_id, p.passport_id, r.skill_id, r.date_earned, v]));
+        grp.filter((r) => r.skill_id).forEach((r) => run("INSERT OR IGNORE INTO passport_skills (record_id, passport_id, skill_id, date_earned, added_in_version) VALUES (?, ?, ?, ?, ?)", [r.record_id, p.passport_id, r.skill_id, r.date_earned, v]));
         await issueVersion(p, v, issuedAt);
         n++;
       }
@@ -304,10 +309,17 @@
           dupe.add(r.record_id); return true;
         });
         const { p, created } = ensurePassport(fresh[0], nowIso);
+        const skillRecs = fresh.filter((r) => r.skill_id);
+        if (!skillRecs.length && p.latest_version > 0) { // already has a passport: nothing new to issue
+          const cur = get("SELECT issued_at FROM passport_versions WHERE passport_id = ? AND version = ?", [p.passport_id, p.latest_version]);
+          fresh.forEach((r) => updates.push({ rowNo: r.row_no, recordId: r.record_id, set: { syncStatus: "SYNCED", syncedVersion: "V" + p.latest_version, syncedAt: fmtUtc(cur.issued_at), syncError: "", passportId: p.passport_id, firstIssued: p.first_issued } }));
+          steps.push("უკვე აქვს პასპორტი " + p.passport_id + " · " + p.first_name + " " + p.last_name + " (ახალი ვერსია არ საჭიროებს)");
+          continue;
+        }
         const v = p.latest_version + 1;
-        fresh.forEach((r) => run("INSERT INTO passport_skills (record_id, passport_id, skill_id, date_earned, added_in_version) VALUES (?, ?, ?, ?, ?)", [r.record_id, p.passport_id, r.skill_id, r.date_earned, v]));
+        skillRecs.forEach((r) => run("INSERT INTO passport_skills (record_id, passport_id, skill_id, date_earned, added_in_version) VALUES (?, ?, ?, ?, ?)", [r.record_id, p.passport_id, r.skill_id, r.date_earned, v]));
         const res = await issueVersion(p, v, nowIso);
-        issued.push({ studentId, passportId: p.passport_id, name: p.first_name + " " + p.last_name, version: v, code: res.code, added: fresh.length, created, block: res.block.block_index });
+        issued.push({ studentId, passportId: p.passport_id, name: p.first_name + " " + p.last_name, version: v, code: res.code, added: skillRecs.length, created, block: res.block.block_index });
         fresh.forEach((r) => updates.push({ rowNo: r.row_no, recordId: r.record_id, set: { syncStatus: "SYNCED", syncedVersion: "V" + v, syncedAt: fmtUtc(nowIso), syncError: "" } }));
         // Write the persistent Passport ID / First Issued back to every row of the student.
         all("SELECT row_no, record_id, passport_id, first_issued FROM sheet_rows WHERE student_id = ?", [studentId]).forEach((row) => {
@@ -317,7 +329,7 @@
             if (u) Object.assign(u.set, extra); else updates.push({ rowNo: row.row_no, recordId: row.record_id, set: extra });
           }
         });
-        steps.push((created ? "ახალი პასპორტი " : "განახლდა ") + p.passport_id + " · " + p.first_name + " " + p.last_name + " → V" + v + " (+" + fresh.length + " უნარი) · ბლოკი #" + res.block.block_index);
+        steps.push((created ? (skillRecs.length ? "ახალი პასპორტი " : "ახალი ცარიელი პასპორტი ") : "განახლდა ") + p.passport_id + " · " + p.first_name + " " + p.last_name + " → V" + v + " (+" + skillRecs.length + " უნარი) · ბლოკი #" + res.block.block_index);
       }
       if (updates.length) {
         await sheet.writeBack(updates);

@@ -8,6 +8,7 @@
  *
  * GET  ?action=read            → { rows: [ {studentId … syncError} ] }   (columns A–T)
  * POST {action:"append", rows:[{studentId … syncError}]}   adds rows from an uploaded results file
+ *      (an enrollment row has Record ID "ENR-…" and empty skill columns: blank passport)
  * POST {action:"writeBack", updates:[{recordId, set:{…}}]}
  *      writes only system-managed fields: G (Passport ID), H (First Issued) on
  *      initial issuance, and Q–T (sync status, version, synced at, error).
@@ -101,7 +102,7 @@ function appendRows_(rows) {
   if (!rows.length) return { ok: true, appended: 0 };
   sh.insertRowsAfter(last, rows.length);
   const values = rows.map((o, i) => FIELDS.map((f, c) => {
-    if (c === 13) return '=IF(M' + (last + 1 + i) + '="AI Skill","BDG-AI-001",IF(M' + (last + 1 + i) + '="AI Applied Skill","BDG-AI-002",IF(M' + (last + 1 + i) + '="AI Advanced Skill","BDG-AI-003","CHECK CATEGORY")))';
+    if (c === 13) return '=IF(M' + (last + 1 + i) + '="","",IF(M' + (last + 1 + i) + '="AI Skill","BDG-AI-001",IF(M' + (last + 1 + i) + '="AI Applied Skill","BDG-AI-002",IF(M' + (last + 1 + i) + '="AI Advanced Skill","BDG-AI-003","CHECK CATEGORY"))))';
     return o[f] == null ? "" : o[f];
   }));
   sh.getRange(last + 1, 1, rows.length, 20).setValues(values);
