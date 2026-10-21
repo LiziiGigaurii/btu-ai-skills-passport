@@ -7,6 +7,7 @@
  * website: Administration → Source settings.
  *
  * GET  ?action=read            → { rows: [ {studentId … syncError} ] }   (columns A–T)
+ * POST {action:"append", rows:[{studentId … syncError}]}   adds rows from an uploaded results file
  * POST {action:"writeBack", updates:[{recordId, set:{…}}]}
  *      writes only system-managed fields: G (Passport ID), H (First Issued) on
  *      initial issuance, and Q–T (sync status, version, synced at, error).
@@ -66,6 +67,7 @@ function doPost(e) {
   lock.waitLock(30000);
   try {
     const body = JSON.parse(e.postData.contents || "{}");
+    if (body.action === "append" && Array.isArray(body.rows)) return json_(appendRows_(body.rows));
     if (body.action !== "writeBack" || !Array.isArray(body.updates)) return json_({ error: "Bad request" });
     const sh = sheet_();
     const h = headerRow_(sh);
@@ -85,6 +87,25 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// Adds new skill records (from an uploaded event results file) right after the last
+// data row, above the technical notes block. Column N gets the badge-code formula.
+function appendRows_(rows) {
+  const sh = sheet_();
+  const h = headerRow_(sh);
+  const n = Math.max(0, sh.getLastRow() - h);
+  const ids = n ? sh.getRange(h + 1, 1, n, 1).getDisplayValues().map((r) => r[0].trim()) : [];
+  let last = h;
+  ids.forEach((v, i) => { if (/^BTU-/.test(v)) last = h + 1 + i; });
+  if (!rows.length) return { ok: true, appended: 0 };
+  sh.insertRowsAfter(last, rows.length);
+  const values = rows.map((o, i) => FIELDS.map((f, c) => {
+    if (c === 13) return '=IF(M' + (last + 1 + i) + '="AI Skill","BDG-AI-001",IF(M' + (last + 1 + i) + '="AI Applied Skill","BDG-AI-002",IF(M' + (last + 1 + i) + '="AI Advanced Skill","BDG-AI-003","CHECK CATEGORY")))';
+    return o[f] == null ? "" : o[f];
+  }));
+  sh.getRange(last + 1, 1, rows.length, 20).setValues(values);
+  return { ok: true, appended: rows.length };
 }
 
 function json_(o) {

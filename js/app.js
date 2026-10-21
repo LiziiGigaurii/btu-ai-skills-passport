@@ -61,6 +61,7 @@
       label: "სატესტო Google Sheet (Passport Skill Records)",
       read: async () => JSON.parse(JSON.stringify(sheetRows)),
       writeBack: async (updates) => { updates.forEach((u) => { const r = sheetRows.find((x) => x.recordId === u.recordId) || sheetRows[u.rowNo]; if (r) Object.assign(r, u.set); }); },
+      append: async (rows) => { rows.forEach((r) => sheetRows.push(r)); },
     };
   }
   function googleSource(url) {
@@ -77,6 +78,11 @@
         const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "writeBack", updates: updates.map((u) => ({ recordId: u.recordId, set: u.set })) }) });
         if (!r.ok) throw new Error("Google Sheet-ში ჩაწერა ვერ მოხერხდა: " + r.status);
         updates.forEach((u) => { const x = sheetRows.find((y) => y.recordId === u.recordId); if (x) Object.assign(x, u.set); });
+      },
+      append: async (rows) => {
+        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "append", rows }) });
+        if (!r.ok) throw new Error("Google Sheet-ში დამატება ვერ მოხერხდა: " + r.status);
+        rows.forEach((x) => sheetRows.push(x));
       },
     };
   }
@@ -399,12 +405,12 @@
           '<div id="a-syncres">' + (ui.lastSync ? syncResultHtml(ui.lastSync) : '<p class="muted small" style="margin:0">' + (pending ? "Sheet-ში " + pending + " ჩანაწერი ელოდება დამუშავებას." : "ყველა ჩანაწერი დასინქრონებულია.") + "</p>") + "</div>" +
         "</div>" +
         '<div><div class="tabs" role="tablist">' +
-          tabBtn("sheet", "Google Sheet (A–T)") + tabBtn("passports", "პასპორტები (" + c.passports + ")") + tabBtn("runs", "სინქრონიზაციის ისტორია") + tabBtn("source", "წყაროს პარამეტრები") +
+          tabBtn("sheet", "Google Sheet (A–T)") + tabBtn("upload", "შედეგების ატვირთვა (Excel)") + tabBtn("passports", "პასპორტები (" + c.passports + ")") + tabBtn("runs", "სინქრონიზაციის ისტორია") + tabBtn("source", "წყაროს პარამეტრები") +
         '</div><div id="a-tab"></div></div>' +
       "</div>";
     $("a-sync").onclick = doSync;
     document.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => { ui.adminTab = b.dataset.tab; renderAdmin(); }));
-    ({ sheet: tabSheet, passports: tabPassports, runs: tabRuns, source: tabSource })[ui.adminTab]();
+    ({ sheet: tabSheet, upload: tabUpload, passports: tabPassports, runs: tabRuns, source: tabSource })[ui.adminTab]();
   }
   const tabBtn = (id, label) => '<button class="tab" role="tab" data-tab="' + id + '" aria-selected="' + (ui.adminTab === id) + '">' + label + "</button>";
 
@@ -489,6 +495,136 @@
       renderAdmin();
     };
   }
+  // ------------------------------------------------------------ admin: upload event results (Excel)
+  const HEAD = {
+    firstName: /^(first\s*name|given\s*name|სახელი)$/i,
+    lastName: /^(last\s*name|surname|family\s*name|გვარი)$/i,
+    fullName: /^(full\s*name|name|name\s*surname|სახელი(\s*და)?\s*გვარი|მონაწილე|participant)$/i,
+    email: /(e-?mail|ელ\.?\s*ფოსტა|ელფოსტა|ფოსტა)/i,
+    studentId: /^(student\s*id|სტუდენტის\s*id)$/i,
+    program: /^(program|programme|პროგრამა)$/i,
+    level: /^(education\s*level|level|საფეხური)$/i,
+    skillId: /^skill\s*id$/i,
+    dateEarned: /^(date\s*earned|date|თარიღი)$/i,
+  };
+  const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  const UPLOAD_KA = { NEW_SKILL: "ემატება უნარი", NEW_STUDENT: "ახალი სტუდენტი + უნარი", HAS: "უკვე აქვს", DUP: "ფაილში მეორდება", ERROR: "შეცდომა" };
+  const UPLOAD_CLS = { NEW_SKILL: "ok", NEW_STUDENT: "pink", HAS: "grey", DUP: "warn", ERROR: "bad" };
+  function normDate(d) {
+    d = String(d || "").trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
+    let m = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(d);
+    if (m) return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+    if (/^\d{5}(\.\d+)?$/.test(d)) return new Date(Date.UTC(1899, 11, 30) + Math.round(Number(d) * 86400000)).toISOString().slice(0, 10);
+    return d;
+  }
+  function planUpload(table, skillId, date) {
+    let h = -1, map = {};
+    for (let i = 0; i < Math.min(10, table.length); i++) {
+      const m = {};
+      table[i].forEach((c, j) => { const t = String(c).trim(); for (const k in HEAD) if (m[k] == null && HEAD[k].test(t)) m[k] = j; });
+      if (m.email != null && !table[i].some((c) => String(c).includes("@"))) { h = i; map = m; break; }
+    }
+    const body = h >= 0 ? table.slice(h + 1) : table;
+    const skills = core.q.skills();
+    const byEmail = new Map(), byId = new Map();
+    sheetRows.forEach((r) => { const e = String(r.email).toLowerCase(); if (!byEmail.has(e)) byEmail.set(e, r); if (!byId.has(r.studentId)) byId.set(r.studentId, r); });
+    const seen = new Set(), rows = [];
+    for (const row of body) {
+      const get = (k) => (map[k] != null ? String(row[map[k]] || "").trim() : "");
+      let email = (h >= 0 ? get("email") : row.find((c) => String(c).includes("@")) || "").toLowerCase();
+      let first = get("firstName"), last = get("lastName");
+      if (h < 0) {
+        const rest = row.filter((c) => c && !String(c).includes("@"));
+        if (rest.length >= 2) { first = rest[0]; last = rest[1]; } else if (rest[0]) { const p = rest[0].split(/\s+/); first = p[0]; last = p.slice(1).join(" "); }
+      }
+      if ((!first || !last) && get("fullName")) { const p = get("fullName").split(/\s+/); first = first || p[0]; last = last || p.slice(1).join(" "); }
+      const sk = get("skillId") ? skills.find((s) => s.skill_id.toUpperCase() === get("skillId").toUpperCase()) : skills.find((s) => s.skill_id === skillId);
+      const d = normDate(get("dateEarned") || date);
+      const ex = (get("studentId") && byId.get(get("studentId"))) || byEmail.get(email) || null;
+      const r = { first, last, email, program: get("program"), level: get("level"), skill: sk, date: d, existing: ex, status: "", note: "" };
+      const err = (n) => { r.status = "ERROR"; r.note = n; };
+      if (!email && !ex) err("ელფოსტა აკლია");
+      else if (!ex && !EMAIL_RE.test(email)) err("ელფოსტა არასწორია");
+      else if (!sk) err(get("skillId") ? "უცნობი Skill ID: " + get("skillId") : "აირჩიეთ უნარი");
+      else if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) err("თარიღი არასწორია");
+      else if (ex) {
+        Object.assign(r, { first: ex.firstName, last: ex.lastName, email: ex.email });
+        const key = ex.studentId + "|" + sk.skill_id;
+        if (sheetRows.some((x) => x.studentId === ex.studentId && x.skillId === sk.skill_id)) { r.status = "HAS"; r.note = "ეს უნარი პასპორტში უკვე არის ან Sheet-შია"; }
+        else if (seen.has(key)) { r.status = "DUP"; r.note = "იგივე სტუდენტი ფაილში მეორდება"; }
+        else { r.status = "NEW_SKILL"; r.note = (ex.passportId ? ex.passportId : "პასპორტი შეიქმნება") ; }
+        seen.add(key);
+      } else {
+        const key = email + "|" + sk.skill_id;
+        if (!first || !last) err("სახელი ან გვარი აკლია");
+        else if (!r.program || !r.level) err("სისტემაში არ არის: მიუთითეთ Program და Education Level");
+        else if (seen.has(key)) { r.status = "DUP"; r.note = "იგივე სტუდენტი ფაილში მეორდება"; }
+        else { r.status = "NEW_STUDENT"; r.note = "Passport ID მიენიჭება ავტომატურად"; }
+        seen.add(key);
+      }
+      rows.push(r);
+    }
+    return { rows, headerFound: h >= 0 };
+  }
+  function tabUpload() {
+    const skills = core.q.skills(), u = ui.upload || {};
+    const groups = ["AI Skill", "AI Applied Skill", "AI Advanced Skill"];
+    const plan = u.table ? planUpload(u.table, u.skillId, u.date) : null;
+    const counts = plan ? plan.rows.reduce((m, r) => (m[r.status] = (m[r.status] || 0) + 1, m), {}) : {};
+    const toAdd = (counts.NEW_SKILL || 0) + (counts.NEW_STUDENT || 0);
+    $("a-tab").innerHTML = '<div class="stack">' +
+      '<div class="card form"><h3>ღონისძიების შედეგების ატვირთვა</h3>' +
+        '<p class="muted small" style="margin:0">ჰაკათონის, ვორქშოფის ან კურსის შემდეგ ატვირთეთ Excel მხოლოდ იმ სტუდენტებით, ვინც წარმატებით დაასრულა. სისტემა თითოეულს Sheet-ში დაუმატებს უნარს, მაშინვე გაუშვებს სინქრონიზაციას და განაახლებს ან შექმნის პასპორტებს.</p>' +
+        '<div class="grid3"><label class="f" for="up-skill">უნარი (Skill)<select id="up-skill"><option value="">აირჩიეთ უნარი</option>' + groups.map((g) => '<optgroup label="' + g + '">' + skills.filter((s) => s.category === g).map((s) => '<option value="' + esc(s.skill_id) + '"' + (u.skillId === s.skill_id ? " selected" : "") + ">" + esc(s.skill_id + " · " + s.name) + "</option>").join("") + "</optgroup>").join("") + "</select></label>" +
+        '<label class="f" for="up-date">მიღების თარიღი (Date Earned)<input type="date" id="up-date" value="' + esc(u.date || new Date().toISOString().slice(0, 10)) + '"></label>' +
+        '<label class="f" for="up-file">Excel ფაილი (.xlsx ან .csv)<input type="file" id="up-file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>' +
+        '<p class="hint" style="margin:0">სვეტები: <b>First Name</b>, <b>Last Name</b>, <b>Email</b> (ან სახელი, გვარი, ელფოსტა). სისტემაში ჯერ არარსებული სტუდენტისთვის ასევე <b>Program</b> და <b>Education Level</b>. თუ ფაილში არის Skill ID ან Date Earned სვეტი, სტრიქონისთვის ის გამოიყენება.</p>' +
+        (u.error ? '<div class="notice bad">' + esc(u.error) + "</div>" : "") +
+      "</div>" +
+      (plan ? '<div class="card stack" style="gap:14px"><div class="row between"><div><h3>' + esc(u.fileName) + '</h3><p class="muted small" style="margin:2px 0 0">' + plan.rows.length + " სტრიქონი" + (plan.headerFound ? "" : " · სათაურის სტრიქონი ვერ მოიძებნა, სვეტები ამოცნობილია შიგთავსით") + '</p></div><button class="btn primary" id="up-go"' + (toAdd ? "" : " disabled") + ">Sheet-ში დამატება და სინქრონიზაცია (" + toAdd + ")</button></div>" +
+        '<div class="row">' + Object.keys(UPLOAD_KA).filter((k) => counts[k]).map((k) => '<span class="pill ' + UPLOAD_CLS[k] + '">' + UPLOAD_KA[k] + ": " + counts[k] + "</span>").join("") + "</div>" +
+        '<div class="tbl tall"><table><thead><tr><th>#</th><th>სტუდენტი</th><th>ელფოსტა</th><th>უნარი</th><th>თარიღი</th><th>სტატუსი</th></tr></thead><tbody>' +
+          plan.rows.map((r, i) => '<tr><td class="num">' + (i + 1) + "</td><td><b>" + esc((r.first + " " + r.last).trim() || "—") + "</b>" + (r.existing ? '<br><span class="muted small">' + esc(r.existing.studentId) + "</span>" : "") + '</td><td class="small">' + esc(r.email || "—") + "</td><td>" + (r.skill ? esc(r.skill.name) + "<br>" + cat(r.skill.category) : "—") + '</td><td class="num">' + esc(r.date ? fmtDate(r.date) : "—") + '</td><td><span class="pill ' + UPLOAD_CLS[r.status] + '">' + UPLOAD_KA[r.status] + '</span><br><span class="muted small">' + esc(r.note) + "</span></td></tr>").join("") +
+        "</tbody></table></div></div>" : "") +
+    "</div>";
+    const keep = () => { ui.upload = Object.assign(ui.upload || {}, { skillId: $("up-skill").value, date: $("up-date").value }); };
+    $("up-skill").onchange = () => { keep(); tabUpload(); };
+    $("up-date").onchange = () => { keep(); tabUpload(); };
+    $("up-file").onchange = async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      keep();
+      try { ui.upload.table = await TableReader.readTable(f); ui.upload.fileName = f.name; ui.upload.error = null; if (!ui.upload.table.length) ui.upload.error = "ფაილი ცარიელია."; }
+      catch (err) { ui.upload.table = null; ui.upload.error = err.message || "ფაილის წაკითხვა ვერ მოხერხდა."; }
+      tabUpload();
+    };
+    if ($("up-go")) $("up-go").onclick = async () => {
+      const b = $("up-go"); b.disabled = true; b.textContent = "ემატება და სინქრონიზდება…";
+      try {
+        const add = plan.rows.filter((r) => r.status === "NEW_SKILL" || r.status === "NEW_STUDENT");
+        let maxRec = sheetRows.reduce((m, r) => Math.max(m, Number(String(r.recordId).replace(/\D/g, "")) || 0), 0);
+        let maxSt = sheetRows.reduce((m, r) => Math.max(m, Number(String(r.studentId).replace(/\D/g, "")) || 0), 0);
+        const newIds = new Map();
+        const rows = add.map((r) => {
+          let base;
+          if (r.existing) { const x = r.existing; base = { studentId: x.studentId, firstName: x.firstName, lastName: x.lastName, email: x.email, program: x.program, educationLevel: x.educationLevel, passportId: x.passportId, firstIssued: x.firstIssued, studentStatus: x.studentStatus }; }
+          else {
+            if (!newIds.has(r.email)) newIds.set(r.email, "BTU-T-" + String(++maxSt).padStart(4, "0"));
+            base = { studentId: newIds.get(r.email), firstName: r.first, lastName: r.last, email: r.email, program: r.program, educationLevel: r.level, passportId: "", firstIssued: "", studentStatus: "Active" };
+          }
+          return Object.assign(base, { recordId: "REC-" + String(++maxRec).padStart(4, "0"), skillId: r.skill.skill_id, skillName: r.skill.name, category: r.skill.category, badgeCode: "", description: r.skill.description, dateEarned: r.date, syncStatus: "NOT SYNCED", syncedVersion: "", syncedAt: "", syncError: "" });
+        });
+        await source.append(rows);
+        const res = await core.sync();
+        persist();
+        ui.lastSync = res; ui.upload = { skillId: ui.upload.skillId, date: ui.upload.date };
+        toast(rows.length + " სტრიქონი დაემატა · " + res.issued.length + " პასპორტი განახლდა");
+        window.scrollTo(0, 0);
+      } catch (err) { toast("შეცდომა: " + err.message); }
+      renderAdmin();
+    };
+  }
+
   function tabPassports() {
     const list = core.q.passports();
     $("a-tab").innerHTML = '<div class="tbl"><table><thead><tr><th>Passport ID</th><th>სტუდენტი</th><th>პროგრამა</th><th>პირველი გაცემა</th><th>უახლესი</th><th>უნარები</th><th>ვერიფიკაციის კოდი</th><th></th></tr></thead><tbody>' +
