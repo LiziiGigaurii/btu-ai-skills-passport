@@ -55,7 +55,10 @@ nav.main a { text-decoration: none; color: var(--ink-2); font-weight: 600; font-
 nav.main a:hover { background: var(--pink-soft); color: var(--pink-deep); }
 nav.main a[aria-current="page"] { background: var(--pink-soft); color: var(--pink-deep); }
 .proto { font-size: 12px; font-weight: 600; color: var(--pink-deep); background: var(--pink-soft); border-radius: 99px; padding: 4px 10px; white-space: nowrap; }
-@media (max-width: 760px) { nav.main { order: 3; flex-basis: 100%; } }
+.session { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.who { font-size: 13px; color: var(--muted); text-align: right; line-height: 1.25; }
+.who b { display: block; color: var(--ink); font-weight: 600; }
+@media (max-width: 760px) { nav.main { order: 3; flex-basis: 100%; } .session { margin-left: auto; } .who { display: none; } }
 
 /* hero */
 .hero { background: linear-gradient(135deg, #E5007D 0%, #D2007B 42%, #3A1CB6 100%); color: #fff; position: relative; overflow: hidden; }
@@ -191,13 +194,11 @@ footer.site .wrap { padding-block: 22px; display: flex; flex-wrap: wrap; gap: 8p
       <span class="logo-mark">BTU</span>
       <span class="logo-text">AI Skills Digital Passport<span>Business &amp; Technology University</span></span>
     </a>
-    <nav class="main" aria-label="მთავარი მენიუ">
+    <nav class="main" aria-label="მთავარი მენიუ" id="nav">
       <a href="#verify" data-route="verify">ვერიფიკაცია</a>
-      <a href="#student" data-route="student">ჩემი პასპორტი</a>
-      <a href="#admin" data-route="admin">ადმინისტრირება</a>
       <a href="#ledger" data-route="ledger">ბლოკჩეინი</a>
     </nav>
-    <span class="proto">ჰაკათონის პროტოტიპი</span>
+    <div class="session" id="session"><span class="proto">ჰაკათონის პროტოტიპი</span></div>
   </div>
 </header>
 

@@ -24,7 +24,20 @@
 
   // ------------------------------------------------------------ state
   let SQL, db, core, sheetRows, source;
-  const ui = { route: "verify", adminTab: "sheet", sheetFilter: "ALL", sheetSearch: "", lastSync: null, student: null, otp: null, verify: null, busy: false };
+  // One administrator account controls the Sheet, sync, passports and settings.
+  const ADMIN_EMAIL = "admin@btu.edu.ge";
+  let savedSession = null;
+  try { savedSession = JSON.parse(sessionStorage.getItem("btu-ap-session") || "null"); } catch (e) {}
+  const ui = { route: "verify", adminTab: "sheet", sheetFilter: "ALL", sheetSearch: "", lastSync: null, session: savedSession, otp: null, verify: null, busy: false, loginFor: null };
+  function setSession(s) {
+    ui.session = s;
+    try { if (s) sessionStorage.setItem("btu-ap-session", JSON.stringify(s)); else sessionStorage.removeItem("btu-ap-session"); } catch (e) {}
+  }
+  function logout() {
+    setSession(null); ui.otp = null; ui.lastSync = null;
+    if (location.hash === "#verify") go(); else location.hash = "#verify";
+    toast("გამოხვედით სისტემიდან");
+  }
 
   function makeSqlAdapter(database) {
     return {
@@ -179,13 +192,30 @@
   }
 
   // ------------------------------------------------------------ routing
-  const ROUTES = { verify: renderVerify, student: renderStudent, admin: renderAdmin, ledger: renderLedger };
+  const ROUTES = { verify: renderVerify, student: renderStudent, admin: renderAdmin, ledger: renderLedger, login: renderLogin };
   function go() {
     const r = (location.hash || "#verify").slice(1);
-    ui.route = ROUTES[r] ? r : "verify";
-    document.querySelectorAll("nav.main a").forEach((a) => { if (a.dataset.route === ui.route) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
-    ROUTES[ui.route]();
+    let route = ROUTES[r] ? r : "verify";
+    const role = ui.session && ui.session.role;
+    // Private pages need the matching sign-in: students see only their own passport, the admin sees administration.
+    if (route === "admin" && role !== "admin") { ui.loginFor = "admin"; route = "login"; }
+    else if (route === "student" && role !== "student") { ui.loginFor = role === "admin" ? null : "student"; route = role === "admin" ? "admin" : "login"; }
+    else if (route === "login" && role) { route = role; }
+    ui.route = route;
+    renderNav();
+    ROUTES[route]();
     window.scrollTo(0, 0);
+  }
+  function renderNav() {
+    const role = ui.session && ui.session.role;
+    const links = [["verify", "ვერიფიკაცია"], ["ledger", "ბლოკჩეინი"]];
+    if (role === "student") links.push(["student", "ჩემი პასპორტი"]);
+    if (role === "admin") links.push(["admin", "ადმინისტრირება"]);
+    $("nav").innerHTML = links.map(([id, label]) => '<a href="#' + id + '" data-route="' + id + '"' + (ui.route === id ? ' aria-current="page"' : "") + ">" + label + "</a>").join("");
+    $("session").innerHTML = role
+      ? '<span class="who"><b>' + (role === "admin" ? "ადმინისტრატორი" : "სტუდენტი") + "</b>" + esc(ui.session.email) + '</span><button class="btn sm" id="nav-out" type="button">გასვლა</button>'
+      : '<span class="proto">ჰაკათონის პროტოტიპი</span><a class="btn primary sm" href="#login"' + (ui.route === "login" ? ' aria-current="page"' : "") + ">შესვლა</a>";
+    if ($("nav-out")) $("nav-out").onclick = logout;
   }
   window.addEventListener("hashchange", go);
 
@@ -278,13 +308,13 @@
 
   // ------------------------------------------------------------ student portal
   function renderStudent() {
-    if (!ui.student) return renderLogin();
-    const email = ui.student;
+    if (!ui.session || ui.session.role !== "student") return renderLogin();
+    const email = ui.session.email;
     const p = core.q.passportByEmail(email);
     const s = core.q.studentByEmail(email);
     if (!p) {
       $("app").innerHTML = '<div class="wrap page-head"><h1>ჩემი პასპორტი</h1></div><div class="wrap stack"><div class="card edge stack"><h2>' + esc(s.first_name + " " + s.last_name) + '</h2><div class="notice">თქვენი Digital Passport ჯერ არ გაცემულა. ის ავტომატურად შეიქმნება, როცა BTU თქვენს დადასტურებულ უნარს სისტემაში დაასინქრონებს.</div><div><button class="btn" id="s-out">გასვლა</button></div></div></div>';
-      $("s-out").onclick = () => { ui.student = null; renderStudent(); };
+      $("s-out").onclick = logout;
       return;
     }
     const versions = core.q.versions(p.passport_id);
@@ -306,7 +336,7 @@
         "</tbody></table></div></div>" +
       "</div>";
     $("s-dl").onclick = () => downloadVersion(p.passport_id, latest.version);
-    $("s-out").onclick = () => { ui.student = null; renderStudent(); };
+    $("s-out").onclick = logout;
     $("s-copy").onclick = async () => { try { await navigator.clipboard.writeText(latest.verification_code); toast("კოდი დაკოპირდა"); } catch (e) { toast("კოპირება ვერ მოხერხდა: " + latest.verification_code); } };
     document.querySelectorAll("[data-v]").forEach((b) => (b.onclick = () => downloadVersion(p.passport_id, Number(b.dataset.v))));
     core.officialPdf(p.passport_id, latest.version).then((bytes) => renderPreview($("s-pages"), bytes)).catch((e) => ($("s-pages").innerHTML = '<div class="notice bad">' + esc(e.message) + "</div>"));
@@ -314,21 +344,26 @@
   function renderLogin() {
     const sample = core.q.passports().slice(0, 3).map((p) => p.email);
     const otp = ui.otp;
+    const forAdmin = ui.loginFor === "admin";
     $("app").innerHTML =
-      '<div class="wrap page-head"><h1>ჩემი პასპორტი</h1><p>შესვლა BTU-ის ელფოსტით. პასპორტის ნახვა და ჩამოტვირთვა მხოლოდ მის მფლობელს შეუძლია.</p></div>' +
+      '<div class="wrap page-head"><h1>შესვლა</h1><p>' + (forAdmin
+        ? "ადმინისტრირების გვერდი მხოლოდ ადმინისტრატორისთვისაა. შედით ადმინისტრატორის ელფოსტით."
+        : "სტუდენტები შედიან BTU-ის ელფოსტით და ხედავენ მხოლოდ საკუთარ პასპორტს. პასპორტის ვერიფიკაციისთვის შესვლა საჭირო არ არის.") + "</p></div>" +
       '<div class="wrap"><div class="card edge form" style="max-width:520px">' +
         (!otp
           ? '<form class="form" id="l1" novalidate><label class="f" for="l-email">BTU ელფოსტა<input id="l-email" type="email" autocomplete="email" placeholder="name.surname@btu.edu.ge"></label><p class="notice bad" id="l-err" hidden></p><button class="btn primary" type="submit">ერთჯერადი კოდის გაგზავნა</button>' +
-            '<p class="hint" style="margin:0">სატესტო ელფოსტები: ' + sample.map((e) => '<button type="button" class="btn ghost sm" data-email="' + esc(e) + '">' + esc(e) + "</button>").join(" ") + "</p></form>"
+            '<p class="hint" style="margin:0">სატესტო სტუდენტები: ' + sample.map((e) => '<button type="button" class="btn ghost sm" data-email="' + esc(e) + '">' + esc(e) + "</button>").join(" ") +
+            '<br>ადმინისტრატორი: <button type="button" class="btn ghost sm" data-email="' + ADMIN_EMAIL + '">' + ADMIN_EMAIL + "</button></p></form>"
           : '<form class="form" id="l2" novalidate><p style="margin:0">კოდი გაიგზავნა მისამართზე <b>' + esc(otp.email) + '</b>.</p><div class="notice info">სატესტო რეჟიმი: ელფოსტის სერვისი ჩართული არ არის, ამიტომ კოდი აქ ჩანს: <b class="mono">' + otp.code + '</b></div><label class="f" for="l-otp">6-ნიშნა კოდი<input id="l-otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" class="code"></label><p class="notice bad" id="l-err" hidden></p><div class="row"><button class="btn primary" type="submit">შესვლა</button><button class="btn ghost" type="button" id="l-back">სხვა ელფოსტა</button></div></form>') +
       "</div></div>";
     if (!otp) {
       const sendCode = (email) => {
-        const s = core.q.studentByEmail(email);
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail("შეიყვანეთ სწორი ელფოსტა.");
-        if (!s) return fail("ეს ელფოსტა BTU-ის სტუდენტების სიაში ვერ მოიძებნა.");
+        const isAdmin = email === ADMIN_EMAIL;
+        const s = isAdmin ? null : core.q.studentByEmail(email);
+        if (!isAdmin && !s) return fail("ეს ელფოსტა BTU-ის სტუდენტების სიაში ვერ მოიძებნა.");
         const a = new Uint32Array(1); crypto.getRandomValues(a);
-        ui.otp = { email: s.email, code: String(a[0] % 1000000).padStart(6, "0"), exp: Date.now() + 10 * 60 * 1000, tries: 0 };
+        ui.otp = { email: isAdmin ? ADMIN_EMAIL : s.email, role: isAdmin ? "admin" : "student", code: String(a[0] % 1000000).padStart(6, "0"), exp: Date.now() + 10 * 60 * 1000, tries: 0 };
         renderLogin();
       };
       const fail = (m) => { const e = $("l-err"); e.textContent = m; e.hidden = false; };
@@ -342,7 +377,9 @@
         const err = $("l-err");
         if (Date.now() > otp.exp) { ui.otp = null; renderLogin(); toast("კოდს ვადა გაუვიდა, მოითხოვეთ ახალი"); return; }
         if ($("l-otp").value.trim() !== otp.code) { otp.tries++; err.textContent = otp.tries >= 5 ? "ძალიან ბევრი მცდელობა. მოითხოვეთ ახალი კოდი." : "კოდი არასწორია."; err.hidden = false; if (otp.tries >= 5) { ui.otp = null; setTimeout(renderLogin, 1200); } return; }
-        ui.student = otp.email; ui.otp = null; renderStudent();
+        setSession({ email: otp.email, role: otp.role }); ui.otp = null; ui.loginFor = null;
+        const target = "#" + otp.role;
+        if (location.hash === target) go(); else location.hash = target;
       };
     }
   }
