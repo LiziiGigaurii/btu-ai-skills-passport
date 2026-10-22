@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const KEYS = { db: "btu-ap-db-v2", issuer: "btu-ap-issuer-v1", sheet: "btu-ap-sheet-v2", source: "btu-ap-source-v1" };
+  const KEYS = { db: "btu-ap-db-v3", issuer: "btu-ap-issuer-v1", sheet: "btu-ap-sheet-v3", source: "btu-ap-source-v1" };
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
@@ -86,6 +86,7 @@
       },
       sendCode: async (email) => post({ action: "sendCode", email }),
       checkCode: async (email, code) => post({ action: "checkCode", email, code }),
+      notify: async (items) => post({ action: "notify", items }),
       append: async (rows) => {
         const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "append", rows }) });
         if (!r.ok) throw new Error("Google Sheet-ში დამატება ვერ მოხერხდა: " + r.status);
@@ -118,7 +119,9 @@
     if (!key) store.set(KEYS.issuer, JSON.stringify(await core.exportIssuerKey()));
     if (!saved) {
       $("boot").textContent = "პირველი გაშვება: Sheet-ში უკვე SYNCED ჩანაწერების V1 ვერსიები აღდგება…";
-      if (source.mode === "demo") await core.importExistingIssuance();
+      // Rebuild V1 versions the Sheet already reports as SYNCED (also loads the skill catalog).
+      try { await core.importExistingIssuance(); }
+      catch (e) { if (source.mode === "demo") throw e; console.warn("Google Sheet unreachable on first start:", e); }
       persist();
     } else if (source.mode === "demo") {
       core.stageSheet(sheetRows);
@@ -207,8 +210,14 @@
   // ------------------------------------------------------------ routing
   const ROUTES = { home: renderHome, verify: renderVerify, student: renderStudent, admin: renderAdmin, ledger: renderLedger, login: renderLogin };
   function go() {
-    const r = (location.hash || "#home").slice(1);
+    // "#verify?code=BTUV-…" (the QR code on the passport cover) opens verification with the code filled in.
+    const [r, query] = (location.hash || "#home").slice(1).split("?");
     let route = ROUTES[r] ? r : "home";
+    if (route === "verify" && query) {
+      const code = new URLSearchParams(query).get("code");
+      if (code) { ui.pendingCode = code; ui.verify = null; }
+      try { history.replaceState(null, "", location.pathname + location.search + "#verify"); } catch (e) {}
+    }
     const role = ui.session && ui.session.role;
     // Private pages need the matching sign-in: students see only their own passport, the admin sees administration.
     if (route === "admin" && role !== "admin") { ui.loginFor = "admin"; route = "login"; }
@@ -400,6 +409,14 @@
     }
     const versions = core.q.versions(p.passport_id);
     const latest = versions[0];
+    // LinkedIn "Add licence or certification" form, pre-filled. Credential ID is the permanent
+    // Passport ID; the credential URL opens public verification of the latest version.
+    const issued = new Date(p.first_issued + "T00:00:00Z");
+    const linkedIn = "https://www.linkedin.com/profile/add?" + new URLSearchParams({
+      startTask: "CERTIFICATION_NAME", name: "AI Skills Digital Passport", organizationName: "Business and Technology University (BTU)",
+      issueYear: issued.getUTCFullYear(), issueMonth: issued.getUTCMonth() + 1, expirationYear: issued.getUTCFullYear() + 20, expirationMonth: issued.getUTCMonth() + 1,
+      certId: p.passport_id, certUrl: PassportPDF.verifyUrl(latest.verification_code),
+    }).toString();
     $("app").innerHTML =
       '<div class="wrap page-head"><h1>ჩემი პასპორტი</h1><p>თქვენი AI Skills Digital Passport. Passport ID მუდმივია, ახალი უნარის დამატებისას კი იქმნება ახალი ვერსია.</p></div>' +
       '<div class="wrap stack">' +
@@ -408,7 +425,7 @@
             '<dl class="kv"><dt>Passport ID</dt><dd class="mono">' + esc(p.passport_id) + "</dd><dt>პირველი გაცემა</dt><dd>" + fmtDate(p.first_issued) + "</dd><dt>პროგრამა</dt><dd>" + (esc([p.program, p.education_level].filter(Boolean).join(" · ")) || "—") + "</dd><dt>ელფოსტა</dt><dd>" + esc(p.email) + "</dd></dl></div>" +
           '<div class="stack" style="gap:10px"><div class="row"><span class="pill ok">უახლესი ვერსია: V' + latest.version + '</span><span class="pill grey">' + latest.skills_count + " უნარი</span></div>" +
             '<dl class="kv"><dt>ვერიფიკაციის კოდი</dt><dd class="mono">' + esc(latest.verification_code) + "</dd><dt>გაცემულია</dt><dd>" + fmtDT(latest.issued_at) + "</dd></dl>" +
-            '<div class="row"><button class="btn primary" id="s-dl">PDF-ის ჩამოტვირთვა</button><button class="btn" id="s-copy">კოდის კოპირება</button><button class="btn ghost" id="s-out">გასვლა</button></div>' +
+            '<div class="row"><button class="btn primary" id="s-dl">PDF-ის ჩამოტვირთვა</button><a class="btn linkedin" href="' + esc(linkedIn) + '" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>LinkedIn-ზე დამატება</a><button class="btn" id="s-copy">კოდის კოპირება</button><button class="btn ghost" id="s-out">გასვლა</button></div>' +
             '<p class="hint" style="margin:0">დამსაქმებელს გაუზიარეთ PDF ან ვერიფიკაციის კოდი. შემოწმება შესაძლებელია „ვერიფიკაციის“ გვერდზე, ავტორიზაციის გარეშე.</p></div>' +
         "</div></div>" +
         (latest.skills_count ? "" : '<div class="notice info">პასპორტი გაცემულია, უნარები ჯერ არ არის. ვორქშოფის, ჰაკათონის ან კურსის წარმატებით დასრულების შემდეგ BTU უნარს დაამატებს და პასპორტის ახალი ვერსია ავტომატურად შეიქმნება.</div>') +
@@ -512,12 +529,26 @@
   }
   const tabBtn = (id, label) => '<button class="tab" role="tab" data-tab="' + id + '" aria-selected="' + (ui.adminTab === id) + '">' + label + "</button>";
 
+  // With the real Google Sheet connected, every student whose passport got a new
+  // version receives an e-mail (sent by the Sheet's Apps Script) with the
+  // verification link, a QR code and the newly added skills.
+  function notifyIssued(res) {
+    if (source.mode !== "google" || !res.issued.length) return;
+    const byPid = new Map(core.q.passports().map((p) => [p.passport_id, p]));
+    const items = res.issued.map((x) => {
+      const now = core.versionData(x.passportId, x.version).skills;
+      const before = x.version > 1 ? new Set(core.versionData(x.passportId, x.version - 1).skills.map((k) => k.recordId)) : new Set();
+      return { email: byPid.get(x.passportId).email, name: x.name, passportId: x.passportId, version: "V" + x.version, code: x.code, verifyUrl: PassportPDF.verifyUrl(x.code), newSkills: now.filter((k) => !before.has(k.recordId)).map((k) => k.name + " (" + k.category + ")") };
+    });
+    source.notify(items).then((r) => toast("ელფოსტა გაეგზავნა " + ((r && r.sent) || 0) + " სტუდენტს")).catch((e) => toast("ელფოსტის გაგზავნა ვერ მოხერხდა: " + e.message));
+  }
   async function doSync() {
     const b = $("a-sync"); b.disabled = true; b.textContent = "მიმდინარეობს…";
     try {
       const res = await core.sync();
       persist();
       ui.lastSync = res;
+      notifyIssued(res);
       toast("სინქრონიზაცია დასრულდა: " + res.issued.length + " პასპორტი განახლდა");
     } catch (e) { toast("შეცდომა: " + e.message); }
     renderAdmin();
@@ -729,6 +760,7 @@
         await source.append(rows);
         const res = await core.sync();
         persist();
+        notifyIssued(res);
         ui.lastSync = res; ui.upload = { skillId: ui.upload.skillId, date: ui.upload.date };
         toast(plan.enroll ? res.issued.length + " ახალი ცარიელი პასპორტი შეიქმნა" : rows.length + " სტრიქონი დაემატა · " + res.issued.length + " პასპორტი განახლდა");
         window.scrollTo(0, 0);

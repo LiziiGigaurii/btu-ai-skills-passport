@@ -15,6 +15,8 @@
  *
  * POST {action:"sendCode", email}            emails a one-time sign-in code (MailApp)
  * POST {action:"checkCode", email, code}      checks it → {ok:true, role:"student"|"admin"}
+ * POST {action:"notify", items:[{email, name, passportId, version, code, verifyUrl, newSkills}]}
+ *      e-mails each student that their passport has a new version (with a QR code to verify it)
  *      Codes are kept 10 minutes in CacheService; never returned to the browser.
  *
  * Column N (Badge/Stamp Code) is a formula in the sheet and is never written.
@@ -75,6 +77,7 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents || "{}");
     if (body.action === "sendCode") return json_(sendCode_(body.email));
     if (body.action === "checkCode") return json_(checkCode_(body.email, body.code));
+    if (body.action === "notify" && Array.isArray(body.items)) return json_(notify_(body.items));
     if (body.action === "append" && Array.isArray(body.rows)) return json_(appendRows_(body.rows));
     if (body.action !== "writeBack" || !Array.isArray(body.updates)) return json_({ error: "Bad request" });
     const sh = sheet_();
@@ -161,6 +164,42 @@ function checkCode_(email, code) {
   }
   cache.remove("otp:" + email);
   return { ok: true, role: roleOf_(email) };
+}
+
+// ---------------------------------------------------------------- passport e-mails
+// Sent after a sync issues a new passport version. Only students that exist in the
+// Sheet receive mail, so the endpoint cannot be used to e-mail arbitrary addresses.
+function notify_(items) {
+  const known = {};
+  readRows_().forEach((r) => (known[r.email.toLowerCase()] = true));
+  let sent = 0;
+  items.slice(0, 200).forEach((it) => {
+    const email = String(it.email || "").trim().toLowerCase();
+    if (!known[email] || !/^BTUV-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(String(it.code))) return;
+    const url = String(it.verifyUrl || "");
+    const qr = UrlFetchApp.fetch("https://quickchart.io/qr?size=220&margin=1&text=" + encodeURIComponent(url)).getBlob().setName("verify-qr.png");
+    const skills = (it.newSkills || []).map((s) => "<li>" + esc_(s) + "</li>").join("");
+    MailApp.sendEmail({
+      to: email,
+      subject: it.version === "V1" && !skills ? "თქვენი AI Skills Digital Passport შეიქმნა" : "თქვენს AI Skills Digital Passport-ს დაემატა ახალი უნარი",
+      name: "BTU AI Skills Passport",
+      htmlBody:
+        '<div style="font-family:Arial,sans-serif;max-width:520px">' +
+        '<p style="font-size:13px;color:#6B7280;margin:0 0 6px">BTU · AI Skills Digital Passport</p>' +
+        "<h2 style=\"margin:0 0 12px\">გამარჯობა, " + esc_(it.name) + "!</h2>" +
+        (skills ? "<p>თქვენს პასპორტს დაემატა:</p><ul>" + skills + "</ul>" : "<p>თქვენი ციფრული პასპორტი შეიქმნა. უნარები დაემატება ვორქშოფების, ჰაკათონებისა და კურსების დასრულების შემდეგ.</p>") +
+        "<p><b>Passport ID:</b> " + esc_(it.passportId) + " · <b>ვერსია:</b> " + esc_(it.version) + "<br><b>ვერიფიკაციის კოდი:</b> " + esc_(it.code) + "</p>" +
+        '<p><a href="' + esc_(url) + '" style="color:#CC006F">ვერიფიკაციის გვერდი</a> · ან დაასკანერეთ QR კოდი:</p><img src="cid:qr" width="160" height="160" alt="QR">' +
+        '<p style="font-size:13px;color:#6B7280">PDF-ის ჩამოტვირთვა შეგიძლიათ საიტზე, BTU ელფოსტით შესვლის შემდეგ.</p></div>',
+      inlineImages: { qr: qr },
+    });
+    sent++;
+  });
+  return { ok: true, sent: sent };
+}
+
+function esc_(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
 function json_(o) {

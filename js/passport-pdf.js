@@ -5,7 +5,7 @@
  * always produces byte-identical PDF, so the document hash registered on the
  * blockchain can be re-checked at any time.
  *
- * Requires the global PDFLib (pdf-lib 1.17.1).
+ * Requires the global PDFLib (pdf-lib 1.17.1) and QRCodeLib (vendor/qrcode.js).
  */
 (function (root) {
   "use strict";
@@ -14,6 +14,12 @@
   // A4 landscape page (841.89 x 595.28). Converted to pdf-lib's bottom-left
   // origin with Y().
   const PAGE_H = 595.276;
+
+  // Public address of the website. The cover QR code opens the verification page
+  // with the code filled in. It is part of the PDF, so changing it changes the
+  // document hash of every passport issued afterwards.
+  const SITE_URL = "https://ai-skill-pink.vercel.app/";
+  const verifyUrl = (code) => SITE_URL + "#verify?code=" + encodeURIComponent(code);
   const Y = (top) => PAGE_H - top;
 
   const T = {
@@ -23,6 +29,7 @@
       date: { x: 650, base: 266, size: 15 },
       passportId: { x: 684, base: 510, size: 11 },
       code: { x: 115, labelBase: 503, codeBase: 517 },
+      qr: { x: 112, top: 336, size: 78 },
     },
     // "PASSPORT ID:" label positions per template page (value goes after/below)
     idAfter: { 2: { x: 153, base: 491 }, 4: { x: 153, base: 491 } },
@@ -138,6 +145,26 @@
     page.pushOperators(popGraphicsState());
   }
 
+  // QR code drawn as vector squares: no network call, and the same input always
+  // gives the same bytes (the PDF must stay deterministic for the hash check).
+  function drawQr(page, text, x, top, size, color) {
+    const L = root.QRCodeLib;
+    const qr = new L.QRCode(-1, L.QRErrorCorrectLevel.M);
+    qr.addData(text);
+    qr.make();
+    const n = qr.getModuleCount(), m = size / n;
+    for (let r = 0; r < n; r++) {
+      let c = 0;
+      while (c < n) {
+        if (!qr.isDark(r, c)) { c++; continue; }
+        let run = 1; // merge horizontal runs to keep the PDF small
+        while (c + run < n && qr.isDark(r, c + run)) run++;
+        page.drawRectangle({ x: x + c * m, y: Y(top + (r + 1) * m), width: run * m + 0.02, height: m + 0.02, color });
+        c += run;
+      }
+    }
+  }
+
   function drawPassportId(page, fonts, pid, tplIndex, black) {
     const after = T.idAfter[tplIndex], below = T.idBelow[tplIndex];
     if (after) page.drawText(pid, { x: after.x, y: Y(after.base), size: 11, font: fonts.bold, color: black });
@@ -174,6 +201,10 @@
     drawPassportId(p1, fonts, data.passportId, 1, black);
     p1.drawText("VERIFICATION CODE (" + data.version + ")", { x: T.cover.code.x, y: Y(T.cover.code.labelBase), size: 7, font: fonts.bold, color: grey });
     p1.drawText(data.verificationCode, { x: T.cover.code.x, y: Y(T.cover.code.codeBase), size: 10.5, font: fonts.mono, color: black });
+    drawQr(p1, verifyUrl(data.verificationCode), T.cover.qr.x, T.cover.qr.top, T.cover.qr.size, black);
+    const qx = T.cover.qr.x + T.cover.qr.size + 8, qb = T.cover.qr.top + T.cover.qr.size - 3;
+    p1.drawText("SCAN TO VERIFY", { x: qx, y: Y(qb - 9), size: 7, font: fonts.bold, color: grey });
+    p1.drawText("NO LOGIN REQUIRED", { x: qx, y: Y(qb), size: 6, font: fonts.reg, color: grey });
 
     // ---- Page 2: about ----
     drawPassportId(pages[1], fonts, data.passportId, 2, black);
@@ -235,5 +266,5 @@
     return doc.save({ useObjectStreams: false });
   }
 
-  root.PassportPDF = { build, STAMP, fmtDate };
+  root.PassportPDF = { build, STAMP, fmtDate, SITE_URL, verifyUrl };
 })(typeof window !== "undefined" ? window : globalThis);
