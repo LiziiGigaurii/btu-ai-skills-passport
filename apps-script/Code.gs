@@ -48,8 +48,10 @@ function headerRow_(sh) {
   throw new Error("Header row with 'Record ID' in column J not found");
 }
 
+// Date cells (Google Sheets turns typed or pasted 2026-10-21 into a date) are read in the
+// spreadsheet's own time zone, otherwise midnight in Tbilisi would become the previous day in UTC.
 function cell_(v) {
-  if (v instanceof Date) return Utilities.formatDate(v, "UTC", "yyyy-MM-dd");
+  if (v instanceof Date) return Utilities.formatDate(v, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), "yyyy-MM-dd");
   return v == null ? "" : String(v).trim();
 }
 

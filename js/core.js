@@ -203,12 +203,12 @@
     function upsertReference() {
       run(`INSERT INTO students (student_id, first_name, last_name, email, program, education_level, student_status)
            SELECT student_id, first_name, last_name, lower(email), program, education_level, student_status
-           FROM sheet_rows WHERE student_id <> '' AND email <> '' GROUP BY student_id
+           FROM sheet_rows WHERE row_no IN (SELECT MIN(row_no) FROM sheet_rows WHERE student_id <> '' AND email <> '' GROUP BY student_id)
            ON CONFLICT(student_id) DO UPDATE SET program = excluded.program, education_level = excluded.education_level,
              student_status = excluded.student_status, email = excluded.email`);
       run(`INSERT INTO skills (skill_id, name, category, badge_code, description)
            SELECT skill_id, skill_name, category, badge_code, description FROM sheet_rows
-           WHERE skill_id <> '' AND badge_code <> 'CHECK CATEGORY' GROUP BY skill_id
+           WHERE row_no IN (SELECT MIN(row_no) FROM sheet_rows WHERE skill_id <> '' AND badge_code <> 'CHECK CATEGORY' GROUP BY skill_id)
            ON CONFLICT(skill_id) DO NOTHING`);
     }
     // Enrollment rows (Record ID "ENR-…") carry only the student: they create a blank passport.
