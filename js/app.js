@@ -65,6 +65,11 @@
     };
   }
   function googleSource(url) {
+    const post = async (body) => {
+      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error("Google Apps Script-მა უპასუხა შეცდომით: " + r.status);
+      return r.json();
+    };
     return {
       label: "Google Sheet (Apps Script)",
       read: async () => {
@@ -79,6 +84,8 @@
         if (!r.ok) throw new Error("Google Sheet-ში ჩაწერა ვერ მოხერხდა: " + r.status);
         updates.forEach((u) => { const x = sheetRows.find((y) => y.recordId === u.recordId); if (x) Object.assign(x, u.set); });
       },
+      sendCode: async (email) => post({ action: "sendCode", email }),
+      checkCode: async (email, code) => post({ action: "checkCode", email, code }),
       append: async (rows) => {
         const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "append", rows }) });
         if (!r.ok) throw new Error("Google Sheet-ში დამატება ვერ მოხერხდა: " + r.status);
@@ -429,7 +436,7 @@
           ? '<form class="form" id="l1" novalidate><label class="f" for="l-email">BTU ელფოსტა<input id="l-email" type="email" autocomplete="email" placeholder="name.surname@btu.edu.ge"></label><p class="notice bad" id="l-err" hidden></p><button class="btn primary" type="submit">ერთჯერადი კოდის გაგზავნა</button>' +
             '<p class="hint" style="margin:0">სატესტო სტუდენტები: ' + sample.map((e) => '<button type="button" class="btn ghost sm" data-email="' + esc(e) + '">' + esc(e) + "</button>").join(" ") +
             '<br>ადმინისტრატორი: <button type="button" class="btn ghost sm" data-email="' + ADMIN_EMAIL + '">' + ADMIN_EMAIL + "</button></p></form>"
-          : '<form class="form" id="l2" novalidate><p style="margin:0">კოდი გაიგზავნა მისამართზე <b>' + esc(otp.email) + '</b>.</p><div class="notice info">სატესტო რეჟიმი: ელფოსტის სერვისი ჩართული არ არის, ამიტომ კოდი აქ ჩანს: <b class="mono">' + otp.code + '</b></div><label class="f" for="l-otp">6-ნიშნა კოდი<input id="l-otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" class="code"></label><p class="notice bad" id="l-err" hidden></p><div class="row"><button class="btn primary" type="submit">შესვლა</button><button class="btn ghost" type="button" id="l-back">სხვა ელფოსტა</button></div></form>') +
+          : '<form class="form" id="l2" novalidate><p style="margin:0">კოდი გაიგზავნა მისამართზე <b>' + esc(otp.email) + '</b>.</p>' + (otp.remote ? '<div class="notice info">შეამოწმეთ ელფოსტა (ასევე Spam საქაღალდე). კოდი მოქმედებს 10 წუთი.</div>' : '<div class="notice info">სატესტო რეჟიმი: ელფოსტის სერვისი ჩართული არ არის, ამიტომ კოდი აქ ჩანს: <b class="mono">' + otp.code + '</b></div>') + '<label class="f" for="l-otp">6-ნიშნა კოდი<input id="l-otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" class="code"></label><p class="notice bad" id="l-err" hidden></p><div class="row"><button class="btn primary" type="submit">შესვლა</button><button class="btn ghost" type="button" id="l-back">სხვა ელფოსტა</button></div></form>') +
       "</div></div>";
     if (!otp) {
       const sendCode = (email) => {
@@ -437,6 +444,15 @@
         const isAdmin = email === ADMIN_EMAIL;
         const s = isAdmin ? null : core.q.studentByEmail(email);
         if (!isAdmin && !s) return fail("ეს ელფოსტა BTU-ის სტუდენტების სიაში ვერ მოიძებნა.");
+        if (source.mode === "google") { // real e-mail through the Sheet's Apps Script
+          const btn = $("l1").querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "იგზავნება…";
+          source.sendCode(isAdmin ? ADMIN_EMAIL : s.email).then((res) => {
+            if (!res.ok) { btn.disabled = false; btn.textContent = "ერთჯერადი კოდის გაგზავნა"; return fail(res.error === "wait" ? "კოდი ახლახან გაიგზავნა. სცადეთ ერთ წუთში." : res.error === "not_found" ? "ეს ელფოსტა Google Sheet-ში ვერ მოიძებნა." : "კოდის გაგზავნა ვერ მოხერხდა."); }
+            ui.otp = { email: isAdmin ? ADMIN_EMAIL : s.email, role: isAdmin ? "admin" : "student", remote: true };
+            renderLogin();
+          }).catch((e) => { btn.disabled = false; btn.textContent = "ერთჯერადი კოდის გაგზავნა"; fail("კავშირი Google Apps Script-თან ვერ მოხერხდა: " + e.message); });
+          return;
+        }
         const a = new Uint32Array(1); crypto.getRandomValues(a);
         ui.otp = { email: isAdmin ? ADMIN_EMAIL : s.email, role: isAdmin ? "admin" : "student", code: String(a[0] % 1000000).padStart(6, "0"), exp: Date.now() + 10 * 60 * 1000, tries: 0 };
         renderLogin();
@@ -450,11 +466,24 @@
       $("l2").onsubmit = (e) => {
         e.preventDefault();
         const err = $("l-err");
+        const done = () => {
+          setSession({ email: otp.email, role: otp.role }); ui.otp = null; ui.loginFor = null;
+          const target = "#" + otp.role;
+          if (location.hash === target) go(); else location.hash = target;
+        };
+        if (otp.remote) {
+          const btn = $("l2").querySelector("button[type=submit]"); btn.disabled = true;
+          source.checkCode(otp.email, $("l-otp").value.trim()).then((res) => {
+            btn.disabled = false;
+            if (res.ok) return done();
+            if (res.error === "expired" || res.error === "too_many") { ui.otp = null; renderLogin(); toast(res.error === "expired" ? "კოდს ვადა გაუვიდა, მოითხოვეთ ახალი" : "ძალიან ბევრი მცდელობა. მოითხოვეთ ახალი კოდი."); return; }
+            err.textContent = "კოდი არასწორია."; err.hidden = false;
+          }).catch((x) => { btn.disabled = false; err.textContent = "კავშირი ვერ მოხერხდა: " + x.message; err.hidden = false; });
+          return;
+        }
         if (Date.now() > otp.exp) { ui.otp = null; renderLogin(); toast("კოდს ვადა გაუვიდა, მოითხოვეთ ახალი"); return; }
         if ($("l-otp").value.trim() !== otp.code) { otp.tries++; err.textContent = otp.tries >= 5 ? "ძალიან ბევრი მცდელობა. მოითხოვეთ ახალი კოდი." : "კოდი არასწორია."; err.hidden = false; if (otp.tries >= 5) { ui.otp = null; setTimeout(renderLogin, 1200); } return; }
-        setSession({ email: otp.email, role: otp.role }); ui.otp = null; ui.loginFor = null;
-        const target = "#" + otp.role;
-        if (location.hash === target) go(); else location.hash = target;
+        done();
       };
     }
   }

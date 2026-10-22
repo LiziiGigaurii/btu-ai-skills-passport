@@ -13,10 +13,15 @@
  *      writes only system-managed fields: G (Passport ID), H (First Issued) on
  *      initial issuance, and Q–T (sync status, version, synced at, error).
  *
+ * POST {action:"sendCode", email}            emails a one-time sign-in code (MailApp)
+ * POST {action:"checkCode", email, code}      checks it → {ok:true, role:"student"|"admin"}
+ *      Codes are kept 10 minutes in CacheService; never returned to the browser.
+ *
  * Column N (Badge/Stamp Code) is a formula in the sheet and is never written.
  * Protect columns Q–T against human edits in the live sheet.
  */
 const SHEET_NAME = "Passport Skill Records";
+const ADMIN_EMAIL = "admin@btu.edu.ge"; // the one administrator account (same as on the website)
 const FIELDS = ["studentId", "firstName", "lastName", "email", "program", "educationLevel", "passportId", "firstIssued",
   "studentStatus", "recordId", "skillId", "skillName", "category", "badgeCode", "description", "dateEarned",
   "syncStatus", "syncedVersion", "syncedAt", "syncError"]; // A–T
@@ -68,6 +73,8 @@ function doPost(e) {
   lock.waitLock(30000);
   try {
     const body = JSON.parse(e.postData.contents || "{}");
+    if (body.action === "sendCode") return json_(sendCode_(body.email));
+    if (body.action === "checkCode") return json_(checkCode_(body.email, body.code));
     if (body.action === "append" && Array.isArray(body.rows)) return json_(appendRows_(body.rows));
     if (body.action !== "writeBack" || !Array.isArray(body.updates)) return json_({ error: "Bad request" });
     const sh = sheet_();
@@ -107,6 +114,53 @@ function appendRows_(rows) {
   }));
   sh.getRange(last + 1, 1, rows.length, 20).setValues(values);
   return { ok: true, appended: rows.length };
+}
+
+// ---------------------------------------------------------------- sign-in codes
+function roleOf_(email) {
+  email = String(email || "").trim().toLowerCase();
+  if (!email) return null;
+  if (email === ADMIN_EMAIL.toLowerCase()) return "admin";
+  return readRows_().some((r) => r.email.toLowerCase() === email) ? "student" : null;
+}
+
+function sendCode_(email) {
+  email = String(email || "").trim().toLowerCase();
+  const role = roleOf_(email);
+  if (!role) return { ok: false, error: "not_found" };
+  const cache = CacheService.getScriptCache();
+  if (cache.get("otp-wait:" + email)) return { ok: false, error: "wait" }; // one code per minute
+  const code = String(Math.floor(Math.random() * 1000000)).padStart(6, "0");
+  cache.put("otp:" + email, JSON.stringify({ code: code, tries: 0 }), 600);
+  cache.put("otp-wait:" + email, "1", 60);
+  MailApp.sendEmail({
+    to: email,
+    subject: "BTU AI Skills Passport: შესვლის კოდი " + code,
+    htmlBody:
+      '<div style="font-family:Arial,sans-serif;max-width:480px">' +
+      '<p style="font-size:13px;color:#6B7280;margin:0 0 6px">BTU · AI Skills Digital Passport</p>' +
+      '<p style="font-size:16px;margin:0 0 14px">თქვენი ერთჯერადი შესვლის კოდი:</p>' +
+      '<p style="font-size:30px;font-weight:bold;letter-spacing:6px;margin:0 0 14px;color:#CC006F">' + code + "</p>" +
+      '<p style="font-size:13px;color:#6B7280;margin:0">კოდი მოქმედებს 10 წუთი. თუ შესვლა თქვენ არ მოგითხოვიათ, უბრალოდ დააიგნორეთ ეს წერილი.</p></div>',
+    name: "BTU AI Skills Passport",
+  });
+  return { ok: true, role: role };
+}
+
+function checkCode_(email, code) {
+  email = String(email || "").trim().toLowerCase();
+  const cache = CacheService.getScriptCache();
+  const raw = cache.get("otp:" + email);
+  if (!raw) return { ok: false, error: "expired" };
+  const o = JSON.parse(raw);
+  if (String(code || "").trim() !== o.code) {
+    o.tries++;
+    if (o.tries >= 5) { cache.remove("otp:" + email); return { ok: false, error: "too_many" }; }
+    cache.put("otp:" + email, JSON.stringify(o), 600);
+    return { ok: false, error: "wrong" };
+  }
+  cache.remove("otp:" + email);
+  return { ok: true, role: roleOf_(email) };
 }
 
 function json_(o) {
