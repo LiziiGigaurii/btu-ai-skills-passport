@@ -1,0 +1,11 @@
+{
+  "name": "btu-ai-skills-passport",
+  "private": true,
+  "description": "BTU AI Skills Digital Passport: website + test-data API",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

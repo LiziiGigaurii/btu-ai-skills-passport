@@ -56,9 +56,25 @@
 
   // Google Sheet sources. "demo" keeps the provided test sheet (A–T) in this browser;
   // "google" talks to the Apps Script web app bound to the real sheet (apps-script/Code.gs).
+  // Test data comes from the API (GET /api/records, see api/ and server.js). Where no
+  // API runs (static hosting, the Claude preview) the same JSON file is read directly.
+  let testData = { rows: [], from: "" };
+  async function loadTestData() {
+    const tries = [["api/records", "API /api/records"], ["data/test-data.json", "data/test-data.json"]];
+    for (const [url, from] of tries) {
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) continue;
+        const j = await r.json(); // an HTML fallback page fails here and the next source is tried
+        if (Array.isArray(j.rows)) { testData = { rows: j.rows, from }; return; }
+      } catch (e) { /* try the next one */ }
+    }
+    throw new Error("სატესტო მონაცემები ვერ ჩაიტვირთა (api/records ან data/test-data.json).");
+  }
+  const testRows = () => JSON.parse(JSON.stringify(testData.rows));
   function demoSource() {
     return {
-      label: "სატესტო Google Sheet (Passport Skill Records)",
+      get label() { return "სატესტო მონაცემები · " + testData.from; },
       read: async () => JSON.parse(JSON.stringify(sheetRows)),
       writeBack: async (updates) => { updates.forEach((u) => { const r = sheetRows.find((x) => x.recordId === u.recordId) || sheetRows[u.rowNo]; if (r) Object.assign(r, u.set); }); },
       append: async (rows) => { rows.forEach((r) => sheetRows.push(r)); },
@@ -102,13 +118,14 @@
   async function boot() {
     if (!window.initSqlJs) throw new Error("SQL ბიბლიოთეკა (sql.js) ვერ ჩაიტვირთა. შეამოწმეთ ინტერნეტთან კავშირი.");
     SQL = await window.initSqlJs();
+    await loadTestData();
     const saved = store.get(KEYS.db);
     db = saved ? new SQL.Database(b64ToBytes(saved)) : new SQL.Database();
     try { sheetRows = JSON.parse(store.get(KEYS.sheet) || "null"); } catch (e) { sheetRows = null; }
-    if (!Array.isArray(sheetRows)) sheetRows = JSON.parse(JSON.stringify(window.BTU_TEST_SHEET));
+    if (!Array.isArray(sheetRows)) sheetRows = testRows();
     else { // rows added to the test data after this browser saved its sheet
       const have = new Set(sheetRows.map((r) => r.recordId));
-      window.BTU_TEST_SHEET.forEach((r) => { if (!have.has(r.recordId)) sheetRows.push(JSON.parse(JSON.stringify(r))); });
+      testRows().forEach((r) => { if (!have.has(r.recordId)) sheetRows.push(r); });
     }
     source = currentSource();
     const tpl = b64ToBytes(window.PASSPORT_TEMPLATE_B64);
@@ -130,7 +147,7 @@
 
   async function resetDemo() {
     Object.values(KEYS).forEach((k) => store.del(k));
-    sheetRows = JSON.parse(JSON.stringify(window.BTU_TEST_SHEET));
+    sheetRows = testRows();
     db.close();
     db = new SQL.Database();
     source = currentSource();

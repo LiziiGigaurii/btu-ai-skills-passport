@@ -9,10 +9,22 @@ Business and Technology University-ის (BTU) ჰაკათონის **MV
 ინტერნეტი საჭიროა (SQL ბიბლიოთეკა `sql.js` CDN-იდან იტვირთება).
 
 ```bash
-npx serve .          # ან: python3 -m http.server 8000
+node server.js       # ან: npm start
 ```
 
-შემდეგ ბრაუზერში გახსენით `http://localhost:3000` (ან `:8000`). `index.html`-ის პირდაპირ გახსნაც მუშაობს, მაგრამ პასპორტის გვერდების ჩვენება მაშინ ბრაუზერის PDF ხედვით ხდება.
+შემდეგ ბრაუზერში გახსენით `http://localhost:3000`. სერვერი აწვდის საიტს და API-ს (დამატებითი პაკეტები არ სჭირდება, საკმარისია Node.js 18+). Vercel-ზე `api/` საქაღალდის ფაილები ავტომატურად იგივე API ხდება.
+
+## API: სატესტო მონაცემები
+
+სატესტო მონაცემები ინახება `data/test-data.json`-ში (Sheet-ის A–T სვეტები, 62 ჩანაწერი). საიტი მათ იღებს API-დან (`GET /api/records`); თუ API არ არის (მაგ. სტატიკური ჰოსტინგი), იგივე JSON ფაილს კითხულობს პირდაპირ.
+
+| Endpoint | აბრუნებს |
+|---|---|
+| `GET /api/records` | ყველა ჩანაწერი. ფილტრები: `?email=`, `?studentId=`, `?status=SYNCED\|NOT SYNCED\|FAILED`, `?skillId=` |
+| `GET /api/students` | სტუდენტები (Passport ID, ჩანაწერების რაოდენობა). ფილტრი: `?email=` |
+| `GET /api/skills` | უნარების კატალოგი (ID, სახელი, კატეგორია, შტამპის კოდი). ფილტრი: `?category=` |
+
+მაგალითი: `http://localhost:3000/api/records?email=lizi.gigauri.1@btu.edu.ge`
 
 პირველი გაშვებისას სისტემა Sheet-ში უკვე `SYNCED` ჩანაწერებიდან აღადგენს V1 ვერსიებს (8 სტუდენტი), დანარჩენი 44 ჩანაწერი კი `NOT SYNCED` სტატუსით ელოდება სინქრონიზაციას. თავიდან დასაწყებად (ადმინისტრატორით შესვლის შემდეგ): **ადმინისტრირება → წყაროს პარამეტრები → დემოს თავიდან დაწყება**.
 
@@ -126,7 +138,9 @@ js/app.js                     ინტერფეისი
 js/core.js                    სერვისი: SQL სქემა, სინქრონიზაცია, ვერსიები, ხელმოწერა, ბლოკჩეინი, ვერიფიკაცია
 js/passport-pdf.js            PDF-ის გენერაცია BTU-ის შაბლონში
 assets/passport-template.pdf  BTU-ის ცარიელი შაბლონი (assets/template.js: იგივე base64-ში)
-data/                         სატესტო მონაცემები (xlsx და test-sheet.js)
+data/test-data.json           სატესტო მონაცემები (JSON), data/*.xlsx: Excel ნიმუშები
+api/                          API: records, students, skills (Vercel / server.js)
+server.js                     ლოკალური სერვერი: საიტი + API
 apps-script/Code.gs           Google Sheet-ის კონექტორი
 contracts/PassportRegistry.sol  smart contract
 vendor/                       pdf-lib 1.17.1 (MIT), pdf.js (Apache-2.0)
