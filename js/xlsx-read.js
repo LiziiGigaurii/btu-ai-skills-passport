@@ -11,7 +11,7 @@
     const u8 = new Uint8Array(buf), dv = new DataView(buf);
     let eocd = -1;
     for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
-    if (eocd < 0) throw new Error("ფაილი Excel (.xlsx) ფორმატში არ არის");
+    if (eocd < 0) throw new Error(t("ფაილი Excel (.xlsx) ფორმატში არ არის"));
     const count = dv.getUint16(eocd + 10, true);
     let p = dv.getUint32(eocd + 16, true);
     const entries = {};
@@ -41,14 +41,14 @@
     const read = await unzip(buf);
     const wb = xml(await read("xl/workbook.xml"));
     const first = byTag(wb, "sheet")[0];
-    if (!first) throw new Error("Excel-ში ფურცელი ვერ მოიძებნა");
+    if (!first) throw new Error(t("Excel-ში ფურცელი ვერ მოიძებნა"));
     const rid = first.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id") || first.getAttribute("r:id");
     let target = "worksheets/sheet1.xml";
     const relsTxt = await read("xl/_rels/workbook.xml.rels");
     if (relsTxt) { const rel = byTag(xml(relsTxt), "Relationship").find((r) => r.getAttribute("Id") === rid); if (rel) target = rel.getAttribute("Target"); }
     const path = target.startsWith("/") ? target.slice(1) : "xl/" + target.replace(/^\.\//, "");
     const sstTxt = await read("xl/sharedStrings.xml");
-    const strings = sstTxt ? byTag(xml(sstTxt), "si").map((si) => byTag(si, "t").map((t) => t.textContent).join("")) : [];
+    const strings = sstTxt ? byTag(xml(sstTxt), "si").map((si) => byTag(si, "t").map((n) => n.textContent).join("")) : [];
     // Which cell styles are dates
     const dateStyles = new Set();
     const stylesTxt = await read("xl/styles.xml");
@@ -68,13 +68,13 @@
     byTag(sheet, "row").forEach((r) => {
       const out = [];
       byTag(r, "c").forEach((c) => {
-        const t = c.getAttribute("t"), s = Number(c.getAttribute("s") || 0);
+        const ty = c.getAttribute("t"), s = Number(c.getAttribute("s") || 0);
         const v = byTag(c, "v")[0], is = byTag(c, "is")[0];
         let val = "";
-        if (t === "s") val = strings[Number(v && v.textContent)] || "";
-        else if (t === "inlineStr") val = is ? byTag(is, "t").map((x) => x.textContent).join("") : "";
-        else if (t === "b") val = v && v.textContent === "1" ? "TRUE" : "FALSE";
-        else if (v) val = !t && dateStyles.has(s) && /^\d+(\.\d+)?$/.test(v.textContent) ? serialToDate(v.textContent) : v.textContent;
+        if (ty === "s") val = strings[Number(v && v.textContent)] || "";
+        else if (ty === "inlineStr") val = is ? byTag(is, "t").map((x) => x.textContent).join("") : "";
+        else if (ty === "b") val = v && v.textContent === "1" ? "TRUE" : "FALSE";
+        else if (v) val = !ty && dateStyles.has(s) && /^\d+(\.\d+)?$/.test(v.textContent) ? serialToDate(v.textContent) : v.textContent;
         out[colIndex(c.getAttribute("r"))] = String(val).trim();
       });
       rows.push(Array.from(out, (x) => x || ""));
@@ -101,7 +101,7 @@
     const buf = await file.arrayBuffer();
     const head = new Uint8Array(buf.slice(0, 2));
     if (head[0] === 0x50 && head[1] === 0x4b) return readXlsx(buf); // "PK" zip
-    if (/\.xls$/i.test(file.name)) throw new Error("ძველი .xls ფორმატი არ არის მხარდაჭერილი. შეინახეთ ფაილი .xlsx-ად.");
+    if (/\.xls$/i.test(file.name)) throw new Error(t("ძველი .xls ფორმატი არ არის მხარდაჭერილი. შეინახეთ ფაილი .xlsx-ად."));
     return readCsv(td.decode(buf).replace(/^﻿/, ""));
   }
 

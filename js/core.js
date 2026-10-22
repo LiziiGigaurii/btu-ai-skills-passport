@@ -14,6 +14,7 @@
  */
 (function (root) {
   "use strict";
+  const t = (s) => (root.t ? root.t(s) : s);
 
   const SCHEMA = [
     `CREATE TABLE IF NOT EXISTS students (
@@ -276,12 +277,12 @@
       sqlLog = [];
       const steps = [];
       const rows = await sheet.read();
-      steps.push("Google Sheet წაკითხულია: " + rows.length + " ჩანაწერი (" + sheet.label + ")");
+      steps.push(t("Google Sheet წაკითხულია: ") + rows.length + t(" ჩანაწერი (") + sheet.label + ")");
       stageSheet(rows);
       upsertReference();
       const pending = all(`SELECT * FROM sheet_rows WHERE sync_status IN ('NOT SYNCED', 'FAILED')
                            ORDER BY student_id, date_earned, record_id`);
-      steps.push("ახალი/ხელახლა საცდელი ჩანაწერი: " + pending.length);
+      steps.push(t("ახალი/ხელახლა საცდელი ჩანაწერი: ") + pending.length);
       const updates = [], byStudent = new Map();
       let failed = 0;
       for (const r of pending) {
@@ -313,7 +314,7 @@
         if (!skillRecs.length && p.latest_version > 0) { // already has a passport: nothing new to issue
           const cur = get("SELECT issued_at FROM passport_versions WHERE passport_id = ? AND version = ?", [p.passport_id, p.latest_version]);
           fresh.forEach((r) => updates.push({ rowNo: r.row_no, recordId: r.record_id, set: { syncStatus: "SYNCED", syncedVersion: "V" + p.latest_version, syncedAt: fmtUtc(cur.issued_at), syncError: "", passportId: p.passport_id, firstIssued: p.first_issued } }));
-          steps.push("უკვე აქვს პასპორტი " + p.passport_id + " · " + p.first_name + " " + p.last_name + " (ახალი ვერსია არ საჭიროებს)");
+          steps.push(t("უკვე აქვს პასპორტი ") + p.passport_id + " · " + p.first_name + " " + p.last_name + t(" (ახალი ვერსია არ საჭიროებს)"));
           continue;
         }
         const v = p.latest_version + 1;
@@ -329,7 +330,7 @@
             if (u) Object.assign(u.set, extra); else updates.push({ rowNo: row.row_no, recordId: row.record_id, set: extra });
           }
         });
-        steps.push((created ? (skillRecs.length ? "ახალი პასპორტი " : "ახალი ცარიელი პასპორტი ") : "განახლდა ") + p.passport_id + " · " + p.first_name + " " + p.last_name + " → V" + v + " (+" + skillRecs.length + " უნარი) · ბლოკი #" + res.block.block_index);
+        steps.push((created ? (skillRecs.length ? t("ახალი პასპორტი ") : t("ახალი ცარიელი პასპორტი ")) : t("განახლდა ")) + p.passport_id + " · " + p.first_name + " " + p.last_name + " → V" + v + " (+" + skillRecs.length + t(" უნარი) · ბლოკი #") + res.block.block_index);
       }
       if (updates.length) {
         await sheet.writeBack(updates);
@@ -337,7 +338,7 @@
           const sets = Object.keys(u.set).map((k) => SQL_COLS[SHEET_FIELDS.indexOf(k)] + " = ?");
           sql.run(`UPDATE sheet_rows SET ${sets.join(", ")} WHERE row_no = ?`, Object.values(u.set).concat([u.rowNo]));
         });
-        steps.push("Google Sheet-ში ჩაიწერა სტატუსი (Q–T) " + updates.length + " სტრიქონზე");
+        steps.push(t("Google Sheet-ში ჩაიწერა სტატუსი (Q–T) ") + updates.length + t(" სტრიქონზე"));
       }
       const synced = updates.filter((u) => u.set.syncStatus === "SYNCED").length;
       const log = { steps, sql: sqlLog.slice(0, 60), issued, failed: updates.filter((u) => u.set.syncStatus === "FAILED").map((u) => ({ recordId: u.recordId, error: u.set.syncError })) };
