@@ -190,8 +190,8 @@
       container.innerHTML = t('<iframe title="პასპორტის PDF" src="') + url + t('"></iframe><p class="hint">თუ PDF აქ არ ჩანს, ჩამოტვირთეთ ფაილი.</p>');
     }
   }
-  async function saveFile(filename, bytes) {
-    const blob = new Blob([bytes], { type: "application/pdf" });
+  async function saveFile(filename, bytes, type) {
+    const blob = new Blob([bytes], { type: type || "application/pdf" });
     let dl = null;
     try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { dl = null; }
     if (dl) {
@@ -588,11 +588,18 @@
     const cols = [["A", "Student ID", "student_id"], ["B", "First Name", "first_name"], ["C", "Last Name", "last_name"], ["D", "BTU Email", "email"], ["E", "Program", "program"], ["F", "Level", "education_level"], ["G", "Passport ID", "passport_id"], ["H", "First Issued", "first_issued"], ["I", "Status", "student_status"], ["J", "Record ID", "record_id"], ["K", "Skill ID", "skill_id"], ["L", "Skill Name", "skill_name"], ["M", "Category", "category"], ["N", "Badge Code", "badge_code"], ["O", "Description", "description"], ["P", "Date Earned", "date_earned"], ["Q", "Sync Status", "sync_status"], ["R", "Version", "synced_version"], ["S", "Synced At", "synced_at"], ["T", "Error / Notes", "sync_error"]];
     $("a-tab").innerHTML = '<div class="stack">' +
       (source.mode === "demo" ? addRecordHtml() : t('<div class="notice info">წყაროა რეალური Google Sheet. ახალი უნარი პირდაპირ Sheet-ში დაამატეთ და დააჭირეთ „სინქრონიზაციას“.</div>')) +
-      t('<div class="row between"><div class="chips" role="group" aria-label="ფილტრი">') + ["ALL", "NOT SYNCED", "SYNCED", "FAILED"].map((k) => '<button class="chip" data-f="' + k + '" aria-pressed="' + (f === k) + '">' + (k === "ALL" ? t("ყველა") : k) + "</button>").join("") + t('</div><input id="a-search" style="max-width:280px" placeholder="ძებნა: სახელი, Record ID, უნარი…" value="') + esc(ui.sheetSearch) + '"></div>' +
+      t('<div class="row between"><div class="chips" role="group" aria-label="ფილტრი">') + ["ALL", "NOT SYNCED", "SYNCED", "FAILED"].map((k) => '<button class="chip" data-f="' + k + '" aria-pressed="' + (f === k) + '">' + (k === "ALL" ? t("ყველა") : k) + "</button>").join("") + t('</div><div class="row"><input id="a-search" style="max-width:280px" placeholder="ძებნა: სახელი, Record ID, უნარი…" value="') + esc(ui.sheetSearch) + '"><button class="btn sm" id="a-xlsx" type="button"' + (list.length ? "" : " disabled") + ">" + t("Excel-ში ჩამოტვირთვა") + " (" + list.length + ")</button></div></div>" +
       '<div class="tbl tall"><table class="sheet"><thead><tr>' + cols.map((c) => '<th class="' + ("QRST".includes(c[0]) ? "sys" : "") + '"><span class="col">' + c[0] + "</span>" + c[1] + "</th>").join("") + "</tr></thead><tbody>" +
         (list.length ? list.map((r) => "<tr>" + cols.map((c) => { const v = r[c[2]]; const cls = ("QRST".includes(c[0]) ? "sys " : "") + (c[0] === "O" || c[0] === "T" ? "wrap" : ""); return '<td class="' + cls + '">' + (c[0] === "Q" ? statusPill(v) : c[0] === "M" ? cat(v) : esc(v)) + "</td>"; }).join("") + "</tr>").join("") : t('<tr><td colspan="20" class="muted">ჩანაწერი ვერ მოიძებნა.</td></tr>')) +
       t('</tbody></table></div><p class="hint" style="margin:0">A–P: BTU-ის მიერ დადასტურებული მონაცემები · Q–T: სისტემის მიერ ჩაწერილი სტატუსი (ვარდისფერი სვეტები) · N გამოითვლება M-დან.</p></div>');
     document.querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => { ui.sheetFilter = b.dataset.f; tabSheet(); }));
+    // Download what the table shows (all rows, or the current filter/search) in the BTU sheet layout A–T.
+    $("a-xlsx").onclick = () => {
+      const data = [cols.map((c) => c[1])].concat(list.map((r) => cols.map((c) => r[c[2]] == null ? "" : String(r[c[2]]))));
+      const bytes = TableWriter.toXlsx(data, { sheet: "Passport Skill Records", widths: [12, 12, 14, 30, 30, 12, 15, 12, 10, 11, 9, 32, 17, 12, 48, 12, 12, 9, 18, 30] });
+      const tag = f === "ALL" && !q ? "all" : (f === "ALL" ? "filtered" : f.toLowerCase().replace(/\s+/g, "-"));
+      saveFile("Passport_Skill_Records_" + tag + "_" + new Date().toISOString().slice(0, 10) + ".xlsx", bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    };
     const s = $("a-search");
     s.oninput = () => { ui.sheetSearch = s.value; const pos = s.selectionStart; tabSheet(); const s2 = $("a-search"); s2.focus(); s2.setSelectionRange(pos, pos); };
     if (source.mode === "demo") bindAddRecord();
@@ -603,10 +610,10 @@
     const groups = ["AI Skill", "AI Applied Skill", "AI Advanced Skill"];
     return '<details class="card" id="add-rec"' + (ui.addOpen ? " open" : "") + t('><summary style="cursor:pointer;font-weight:700">+ ახალი დადასტურებული უნარის დამატება Sheet-ში</summary>') +
       t('<form class="form" id="ar" novalidate style="margin-top:14px"><p class="hint" style="margin:0">ასე ამატებს ადმინისტრატორი ახალ სტრიქონს Google Sheet-ში. სტატუსი იქნება NOT SYNCED, სანამ სისტემა არ დაასინქრონებს.</p>') +
-      t('<div class="grid3"><label class="f" for="ar-st">სტუდენტი<select id="ar-st"><option value="__new">+ ახალი სტუდენტი</option>') + students.map((s) => '<option value="' + esc(s.student_id) + '"' + (s.student_id === ui.addStudent ? " selected" : "") + ">" + esc(s.student_id + " · " + s.first_name + " " + s.last_name) + "</option>").join("") + "</select></label>" +
+      t('<div class="grid3"><label class="f" for="ar-st">სტუდენტი<select id="ar-st">') + students.map((s) => '<option value="' + esc(s.student_id) + '"' + (s.student_id === ui.addStudent ? " selected" : "") + ">" + esc(s.student_id + " · " + s.first_name + " " + s.last_name) + "</option>").join("") + '<option value="__new"' + (ui.addStudent === "__new" ? " selected" : "") + ">" + t("+ ახალი სტუდენტი") + "</option></select></label>" +
       t('<label class="f" for="ar-sk">უნარი<select id="ar-sk">') + groups.map((g) => '<optgroup label="' + g + '">' + skills.filter((s) => s.category === g).map((s) => '<option value="' + esc(s.skill_id) + '">' + esc(s.skill_id + " · " + s.name) + "</option>").join("") + "</optgroup>").join("") + "</select></label>" +
       '<label class="f" for="ar-dt">Date Earned<input type="date" id="ar-dt" value="' + today + '"></label></div>' +
-      '<div class="grid3" id="ar-new"' + (ui.addStudent && ui.addStudent !== "__new" ? " hidden" : "") + '><label class="f" for="ar-fn">First Name<input id="ar-fn"></label><label class="f" for="ar-ln">Last Name<input id="ar-ln"></label><label class="f" for="ar-em">BTU Email<input id="ar-em" type="email" placeholder="name.surname@btu.edu.ge"></label>' +
+      '<div class="grid3" id="ar-new"' + (ui.addStudent === "__new" || !students.length ? "" : " hidden") + '><label class="f" for="ar-fn">First Name<input id="ar-fn"></label><label class="f" for="ar-ln">Last Name<input id="ar-ln"></label><label class="f" for="ar-em">BTU Email<input id="ar-em" type="email" placeholder="name.surname@btu.edu.ge"></label>' +
       t('<label class="f" for="ar-pr">Program<input id="ar-pr" placeholder="მაგ. Digital Marketing"></label><label class="f" for="ar-lv">Education Level<select id="ar-lv"><option>Bachelor\'s</option><option>Master\'s</option><option>Doctoral</option></select></label><p class="hint" style="margin:0;align-self:end">Passport ID-ს სისტემა თავად მიანიჭებს და Sheet-ში ჩაწერს.</p></div>') +
       t('<p class="notice bad" id="ar-err" hidden></p><div><button class="btn primary" type="submit">სტრიქონის დამატება</button></div></form></details>');
   }

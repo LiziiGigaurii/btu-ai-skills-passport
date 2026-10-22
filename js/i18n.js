@@ -218,6 +218,7 @@
     "წყაროა რეალური Google Sheet. ახალი უნარი პირდაპირ Sheet-ში დაამატეთ და დააჭირეთ „სინქრონიზაციას“.": "The source is the real Google Sheet. Add the new skill directly in the Sheet and click \"Sync\".",
     "ფილტრი": "Filter",
     "ყველა": "All",
+    "Excel-ში ჩამოტვირთვა": "Download Excel",
     "ძებნა: სახელი, Record ID, უნარი…": "Search: name, Record ID, skill…",
     "ჩანაწერი ვერ მოიძებნა.": "No records found.",
     "A–P: BTU-ის მიერ დადასტურებული მონაცემები · Q–T: სისტემის მიერ ჩაწერილი სტატუსი (ვარდისფერი სვეტები) · N გამოითვლება M-დან.": "A–P: data confirmed by BTU · Q–T: status written by the system (pink columns) · N is calculated from M.",
