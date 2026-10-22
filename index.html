@@ -324,6 +324,9 @@ footer.site { border-top: 1px solid var(--line); background: var(--surface); }
 @media (prefers-reduced-motion: reduce) { .who-card { transition: none; } .who-card:hover { transform: none; } }
 
 footer.site .wrap { padding-block: 22px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; font-size: 13px; color: var(--muted); }
+footer.site a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+footer.site a:hover { color: var(--pink-deep); }
+.tbl tr.hl td { background: var(--pink-soft); }
 </style>
 
 <header class="site">
@@ -346,7 +349,7 @@ footer.site .wrap { padding-block: 22px; display: flex; flex-wrap: wrap; gap: 8p
 <footer class="site">
   <div class="wrap">
     <span>BTU AI Skills Digital Passport · ჰაკათონის MVP · ყველა სტუდენტი და მონაცემი სატესტოა</span>
-    <span>გამცემი: did:web:btu.edu.ge</span>
+    <span>გამცემი: did:web:btu.edu.ge · <a href="#ledger">ბლოკჩეინის რეესტრი</a></span>
   </div>
 </footer>
 <div class="toast" id="toast" role="status" hidden></div>

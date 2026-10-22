@@ -235,6 +235,7 @@
       if (code) { ui.pendingCode = code; ui.verify = null; }
       try { history.replaceState(null, "", location.pathname + location.search + "#verify"); } catch (e) {}
     }
+    ui.focusBlock = route === "ledger" && query ? Number(new URLSearchParams(query).get("block")) : null;
     const role = ui.session && ui.session.role;
     // Private pages need the matching sign-in: students see only their own passport, the admin sees administration.
     if (route === "admin" && role !== "admin") { ui.loginFor = "admin"; route = "login"; }
@@ -247,9 +248,11 @@
   }
   function renderNav() {
     const role = ui.session && ui.session.role;
-    const links = [["home", "მთავარი"], ["verify", "ვერიფიკაცია"], ["ledger", "ბლოკჩეინი"]];
+    // The blockchain page stays public (linked from verification results, the home page and
+    // the footer) but is only a menu tab for the administrator.
+    const links = [["home", "მთავარი"], ["verify", "ვერიფიკაცია"]];
     if (role === "student") links.push(["student", "ჩემი პასპორტი"]);
-    if (role === "admin") links.push(["admin", "ადმინისტრირება"]);
+    if (role === "admin") links.push(["ledger", "ბლოკჩეინი"], ["admin", "ადმინისტრირება"]);
     $("nav").innerHTML = links.map(([id, label]) => '<a href="#' + id + '" data-route="' + id + '"' + (ui.route === id ? ' aria-current="page"' : "") + ">" + label + "</a>").join("");
     $("session").innerHTML = role
       ? '<span class="who"><b>' + (role === "admin" ? "ადმინისტრატორი" : "სტუდენტი") + "</b>" + esc(ui.session.email) + '</span><button class="btn sm" id="nav-out" type="button">გასვლა</button>'
@@ -400,7 +403,7 @@
       "</dl></div>" +
       '<div class="stack" style="gap:12px"><h3>ბლოკჩეინის ჩანაწერი</h3><dl class="kv">' +
         '<dt>PDF SHA-256</dt><dd class="mono">' + esc(v.doc_sha256) + "</dd>" +
-        "<dt>ბლოკი</dt><dd>#" + v.block_index + " · " + fmtDT(res.block.created_at) + "</dd>" +
+        "<dt>ბლოკი</dt><dd>#" + v.block_index + " · " + fmtDT(res.block.created_at) + ' · <a href="#ledger?block=' + v.block_index + '">ბლოკჩეინზე ნახვა →</a></dd>' +
         '<dt>ტრანზაქცია</dt><dd class="mono">' + esc(short(v.tx_hash, 18)) + "</dd>" +
         '<dt>გასაღების ანაბეჭდი</dt><dd class="mono">' + esc(res.issuer.fingerprint) + "</dd>" +
         "<dt>რეესტრის მთლიანობა</dt><dd>" + (res.chain.ok ? '<span class="pill ok">' + res.chain.length + " ბლოკი, მთელია</span>" : '<span class="pill bad">დაზიანებულია</span>') + "</dd>" +
@@ -837,8 +840,10 @@
         '<div class="card stack" style="gap:10px"><h2>ქსელი</h2><dl class="kv"><dt>პროტოტიპი</dt><dd>ბრაუზერში სიმულირებული ბლოკჩეინი (SHA-256 ჯაჭვი)</dd><dt>საწარმოო</dt><dd>Polygon Amoy · <span class="mono">contracts/PassportRegistry.sol</span></dd><dt>მთლიანობა</dt><dd>' + (chain.ok ? '<span class="pill ok">' + chain.length + " ბლოკი, ჯაჭვი მთელია</span>" : '<span class="pill bad">დაზიანებულია: ' + chain.bad.join(", ") + "</span>") + "</dd></dl></div>" +
       "</div>" +
       '<div class="tbl tall"><table><thead><tr><th>#</th><th>დრო</th><th>ქმედება</th><th>პასპორტი / ვერსია</th><th>PDF SHA-256</th><th>Block hash</th><th>Prev hash</th></tr></thead><tbody>' +
-        blocks.map((b) => '<tr><td class="num"><b>' + b.block_index + '</b></td><td class="num small">' + fmtDT(b.created_at) + "</td><td>" + (b.action === "REGISTER_ISSUER" ? '<span class="pill violet">REGISTER_ISSUER</span>' : '<span class="pill pink">ISSUE_VERSION</span>') + '</td><td class="mono">' + esc(b.action === "REGISTER_ISSUER" ? issuer.did : b.ref) + '</td><td class="mono">' + esc(short(b.doc_sha256)) + '</td><td class="mono">' + esc(short(b.block_hash)) + '</td><td class="mono">' + esc(short(b.prev_hash)) + "</td></tr>").join("") +
+        blocks.map((b) => '<tr id="block-' + b.block_index + '"' + (ui.focusBlock === b.block_index ? ' class="hl"' : "") + '><td class="num"><b>' + b.block_index + '</b></td><td class="num small">' + fmtDT(b.created_at) + "</td><td>" + (b.action === "REGISTER_ISSUER" ? '<span class="pill violet">REGISTER_ISSUER</span>' : '<span class="pill pink">ISSUE_VERSION</span>') + '</td><td class="mono">' + esc(b.action === "REGISTER_ISSUER" ? issuer.did : b.ref) + '</td><td class="mono">' + esc(short(b.doc_sha256)) + '</td><td class="mono">' + esc(short(b.block_hash)) + '</td><td class="mono">' + esc(short(b.prev_hash)) + "</td></tr>").join("") +
       "</tbody></table></div></div>";
+    const row = ui.focusBlock != null && document.getElementById("block-" + ui.focusBlock);
+    if (row) setTimeout(() => row.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   }
 
   // ------------------------------------------------------------ start
