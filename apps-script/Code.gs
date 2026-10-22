@@ -19,6 +19,12 @@
  *      e-mails each student that their passport has a new version (with a QR code to verify it)
  *      Codes are kept 10 minutes in CacheService; never returned to the browser.
  *
+ * SECURITY: set Project Settings → Script Properties → API_TOKEN to a long random value and
+ * enter the same value on the website (Administration → Source settings). Every data action
+ * (read, writeBack, append, notify) then requires it, so the Web App URL alone does not
+ * expose student data. The token is never stored in the code or the repository.
+ * POST {action:"read", token}  same as GET ?action=read (GET is refused when API_TOKEN is set).
+ *
  * Column N (Badge/Stamp Code) is a formula in the sheet and is never written.
  * Protect columns Q–T against human edits in the live sheet.
  */
@@ -64,9 +70,18 @@ function readRows_() {
   return rows;
 }
 
+function token_() {
+  return PropertiesService.getScriptProperties().getProperty("API_TOKEN") || "";
+}
+function authorized_(given) {
+  const t = token_();
+  return !t || String(given || "") === t;
+}
+
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || "read";
   if (action !== "read") return json_({ error: "Unknown action" });
+  if (token_()) return json_({ error: "unauthorized: use POST with the access token" });
   return json_({ rows: readRows_(), readAt: new Date().toISOString() });
 }
 
@@ -77,6 +92,8 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents || "{}");
     if (body.action === "sendCode") return json_(sendCode_(body.email));
     if (body.action === "checkCode") return json_(checkCode_(body.email, body.code));
+    if (!authorized_(body.token)) return json_({ error: "unauthorized" });
+    if (body.action === "read") return json_({ rows: readRows_(), readAt: new Date().toISOString() });
     if (body.action === "notify" && Array.isArray(body.items)) return json_(notify_(body.items));
     if (body.action === "append" && Array.isArray(body.rows)) return json_(appendRows_(body.rows));
     if (body.action !== "writeBack" || !Array.isArray(body.updates)) return json_({ error: "Bad request" });

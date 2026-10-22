@@ -3,10 +3,10 @@
 // GET /api/records?studentId=BTU-T-0001
 // GET /api/records?status=NOT%20SYNCED  by sync status (SYNCED, NOT SYNCED, FAILED)
 // GET /api/records?skillId=SKL-001
-const { data, send, query, only } = require("./_data");
+const { data, send, query, only, authorized } = require("./_data");
 
 module.exports = (req, res) => {
-  if (!only(req, res)) return;
+  if (!only(req, res) || !authorized(req, res)) return;
   const q = query(req);
   let rows = data.rows;
   if (q.email) rows = rows.filter((r) => r.email.toLowerCase() === q.email.trim().toLowerCase());

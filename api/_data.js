@@ -21,4 +21,17 @@ function only(req, res) {
   return true;
 }
 
-module.exports = { data, send, query, only };
+// Endpoints that return personal data (names, e-mails) need the API key when the
+// API_KEY environment variable is set (Vercel → Settings → Environment Variables).
+// Send it as "Authorization: Bearer <key>" or "x-api-key: <key>". Never commit the key.
+function authorized(req, res) {
+  const key = process.env.API_KEY;
+  if (!key) return true;
+  const h = req.headers || {};
+  const given = h["x-api-key"] || String(h.authorization || "").replace(/^Bearer\s+/i, "");
+  if (given === key) return true;
+  send(res, 401, { error: "API key required" });
+  return false;
+}
+
+module.exports = { data, send, query, only, authorized };

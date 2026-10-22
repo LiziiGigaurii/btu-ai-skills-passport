@@ -1,9 +1,9 @@
 // GET /api/students            every student with their passport ID and number of records
 // GET /api/students?email=…    one student
-const { data, send, query, only } = require("./_data");
+const { data, send, query, only, authorized } = require("./_data");
 
 module.exports = (req, res) => {
-  if (!only(req, res)) return;
+  if (!only(req, res) || !authorized(req, res)) return;
   const q = query(req);
   const map = new Map();
   for (const r of data.rows) {

@@ -218,6 +218,8 @@
     "წყაროა რეალური Google Sheet. ახალი უნარი პირდაპირ Sheet-ში დაამატეთ და დააჭირეთ „სინქრონიზაციას“.": "The source is the real Google Sheet. Add the new skill directly in the Sheet and click \"Sync\".",
     "ფილტრი": "Filter",
     "ყველა": "All",
+    "წვდომის ტოკენი (API_TOKEN)": "Access token (API_TOKEN)",
+    "იგივე მნიშვნელობა, რაც Apps Script-ის Script Properties-ში API_TOKEN. ინახება მხოლოდ ამ ბრაუზერში, კოდში არა.": "The same value as API_TOKEN in the Apps Script Script Properties. Stored only in this browser, never in the code.",
     "Excel-ში ჩამოტვირთვა": "Download Excel",
     "ძებნა: სახელი, Record ID, უნარი…": "Search: name, Record ID, skill…",
     "ჩანაწერი ვერ მოიძებნა.": "No records found.",

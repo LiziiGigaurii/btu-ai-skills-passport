@@ -80,39 +80,40 @@
       append: async (rows) => { rows.forEach((r) => sheetRows.push(r)); },
     };
   }
-  function googleSource(url) {
+  function googleSource(url, token) {
+    // Data actions carry the administrator's access token (kept only in the admin's browser,
+    // never in the code); sign-in actions (sendCode/checkCode) are public.
     const post = async (body) => {
-      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ token: token || "" }, body)) });
       if (!r.ok) throw new Error(t("Google Apps Script-მა უპასუხა შეცდომით: ") + r.status);
       return r.json();
     };
     return {
       label: "Google Sheet (Apps Script)",
       read: async () => {
-        const r = await fetch(url + (url.includes("?") ? "&" : "?") + "action=read");
-        if (!r.ok) throw new Error(t("Google Sheet-მა უპასუხა შეცდომით: ") + r.status);
-        const j = await r.json();
+        const j = await post({ action: "read" });
+        if (j.error) throw new Error(t("Google Sheet-მა უპასუხა შეცდომით: ") + j.error);
         sheetRows = j.rows;
         return JSON.parse(JSON.stringify(j.rows));
       },
       writeBack: async (updates) => {
-        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "writeBack", updates: updates.map((u) => ({ recordId: u.recordId, set: u.set })) }) });
-        if (!r.ok) throw new Error(t("Google Sheet-ში ჩაწერა ვერ მოხერხდა: ") + r.status);
+        const j = await post({ action: "writeBack", updates: updates.map((u) => ({ recordId: u.recordId, set: u.set })) });
+        if (j.error) throw new Error(t("Google Sheet-ში ჩაწერა ვერ მოხერხდა: ") + j.error);
         updates.forEach((u) => { const x = sheetRows.find((y) => y.recordId === u.recordId); if (x) Object.assign(x, u.set); });
       },
       sendCode: async (email) => post({ action: "sendCode", email }),
       checkCode: async (email, code) => post({ action: "checkCode", email, code }),
       notify: async (items) => post({ action: "notify", items }),
       append: async (rows) => {
-        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "append", rows }) });
-        if (!r.ok) throw new Error(t("Google Sheet-ში დამატება ვერ მოხერხდა: ") + r.status);
+        const j = await post({ action: "append", rows });
+        if (j.error) throw new Error(t("Google Sheet-ში დამატება ვერ მოხერხდა: ") + j.error);
         rows.forEach((x) => sheetRows.push(x));
       },
     };
   }
   function currentSource() {
     let cfg = null; try { cfg = JSON.parse(store.get(KEYS.source) || "null"); } catch (e) {}
-    return cfg && cfg.mode === "google" && cfg.url ? Object.assign(googleSource(cfg.url), { mode: "google", url: cfg.url }) : Object.assign(demoSource(), { mode: "demo" });
+    return cfg && cfg.mode === "google" && cfg.url ? Object.assign(googleSource(cfg.url, cfg.token), { mode: "google", url: cfg.url, token: cfg.token || "" }) : Object.assign(demoSource(), { mode: "demo" });
   }
 
   async function boot() {
@@ -328,7 +329,9 @@
 
   // ------------------------------------------------------------ verify (public)
   function renderVerify() {
-    const samples = core.q.passports().filter((p) => p.verification_code).slice(0, 3);
+    // Shortcut codes for demos are shown to the administrator only: the public page must not
+    // let visitors browse other students' passports.
+    const samples = ui.session && ui.session.role === "admin" ? core.q.passports().filter((p) => p.verification_code).slice(0, 3) : [];
     $("app").innerHTML =
       '<section class="home-hero"><div class="wrap home-hero-in">' +
         '<div class="home-copy">' +
@@ -815,6 +818,7 @@
       '<label class="row small" style="gap:8px"><input type="radio" name="mode" value="demo"' + (source.mode === "demo" ? " checked" : "") + t(' style="width:auto"> სატესტო მონაცემები (BTU-ის მიერ მოწოდებული Sheet, ') + sheetRows.length + t(" ჩანაწერი)</label>") +
       '<label class="row small" style="gap:8px"><input type="radio" name="mode" value="google"' + (source.mode === "google" ? " checked" : "") + t(' style="width:auto"> რეალური Google Sheet (Apps Script Web App URL)</label>') +
       '<label class="f" for="src-url">Web App URL<input id="src-url" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(source.url || "") + '"></label>' +
+      t('<label class="f" for="src-token">წვდომის ტოკენი (API_TOKEN)<input id="src-token" type="password" autocomplete="off" value="') + esc(source.token || "") + t('"></label><p class="hint" style="margin:0">იგივე მნიშვნელობა, რაც Apps Script-ის Script Properties-ში API_TOKEN. ინახება მხოლოდ ამ ბრაუზერში, კოდში არა.</p>') +
       t('<p class="notice bad" id="src-err" hidden></p><div><button class="btn primary" type="submit">შენახვა</button></div></form>') +
       t('<div class="card stack"><h3>მასშტაბირება და ავტომატიზაცია</h3><ul class="steps" style="padding-left:18px"><li>ერთი სინქრონიზაცია ამუშავებს ყველა ახალ სტრიქონს და თითო სტუდენტზე ქმნის ერთ ახალ ვერსიას.</li><li>იმპორტი იდემპოტენტურია: Record ID ერთხელ მუშავდება, FAILED ჩანაწერები შემდეგ ჯერზე თავიდან მოწმდება.</li><li>PDF დეტერმინისტულია: ფაილები ბაზაში არ ინახება და ნებისმიერ დროს ზუსტად აღდგება hash-ის შემოწმებით.</li><li>რეალურ სისტემაში სინქრონიზაცია ავტომატურად გაეშვება Sheet-ის ცვლილებისას (Apps Script trigger) ან განრიგით.</li></ul>') +
       t('<div class="row"><button class="btn danger sm" id="reset" type="button">დემოს თავიდან დაწყება</button></div><div id="reset-confirm"></div></div></div>');
@@ -822,7 +826,7 @@
       e.preventDefault();
       const mode = document.querySelector('input[name="mode"]:checked').value, url = $("src-url").value.trim();
       if (mode === "google" && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { const er = $("src-err"); er.textContent = t("მიუთითეთ Apps Script Web App-ის მისამართი (https://script.google.com/macros/s/…/exec)."); er.hidden = false; return; }
-      store.set(KEYS.source, JSON.stringify({ mode, url }));
+      store.set(KEYS.source, JSON.stringify({ mode, url, token: $("src-token").value.trim() }));
       source = currentSource();
       toast(mode === "google" ? t("წყარო: რეალური Google Sheet") : t("წყარო: სატესტო მონაცემები"));
       renderAdmin();
