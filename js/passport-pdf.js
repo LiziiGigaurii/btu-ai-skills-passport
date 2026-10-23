@@ -18,7 +18,7 @@
   // Public address of the website. The cover QR code opens the verification page
   // with the code filled in. It is part of the PDF, so changing it changes the
   // document hash of every passport issued afterwards.
-  const SITE_URL = "https://ai-skill-pink.vercel.app/";
+  const SITE_URL = "https://ai-passport-opal.vercel.app/";
   const verifyUrl = (code) => SITE_URL + "#verify?code=" + encodeURIComponent(code);
   const Y = (top) => PAGE_H - top;
 
