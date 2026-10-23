@@ -19,8 +19,8 @@
   // Set CONTRACT after deploying the contract (README: "Polygon"). The administrator can
   // also set it in the browser (Blockchain page); that value wins in that browser.
   const DEFAULTS = {
-    CONTRACT: "",
-    ISSUER: "", // BTU wallet address that deployed the contract (published in BTU's DID document)
+    CONTRACT: "0x0fa0455d0249fe8d18f93cfb7b8ddc9d95acf3a1",
+    ISSUER: "0xB6454f2CD62853f8604FF47A2672900c8Fe8D2FA", // BTU wallet address that deployed the contract (published in BTU's DID document)
   };
   const NETWORK = {
     chainId: 80002,
