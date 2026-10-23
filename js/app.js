@@ -269,46 +269,34 @@
     const c = core.q.counts();
     const skills = core.q.skills();
     const tiers = [
-      { cat: "AI Skill", cls: "st-skill", t: "AI SKILL", s: "FOCUSED LEARNING", how: t("ვორქშოფი, მასტერკლასი, სემინარი ან სხვა მოკლე ფორმატი"), what: t("კონკრეტული AI კომპეტენციის განვითარება") },
-      { cat: "AI Applied Skill", cls: "st-applied", t: "AI APPLIED SKILL", s: "APPLIED LEARNING", how: t("2–3 დღიანი ინტენსივი, ბუთქემპი, ჰაკათონი ან ჩელენჯი"), what: t("AI კომპეტენციის პრაქტიკული გამოყენება") },
-      { cat: "AI Advanced Skill", cls: "st-adv", t: "AI ADVANCED SKILL", s: "EXTENDED ACADEMIC LEARNING", how: t("სემესტრული აკადემიური კურსი შეფასებით"), what: t("ხანგრძლივი და ფორმალურად შეფასებული განვითარება") },
+      { cat: "AI Skill", cls: "st-skill", t: "AI SKILL", s: "FOCUSED LEARNING", how: t("ვორქშოფი, სემინარი, მასტერკლასი") },
+      { cat: "AI Applied Skill", cls: "st-applied", t: "AI APPLIED SKILL", s: "APPLIED LEARNING", how: t("ჰაკათონი, ბუთქემპი, 2–3 დღიანი ინტენსივი") },
+      { cat: "AI Advanced Skill", cls: "st-adv", t: "AI ADVANCED SKILL", s: "EXTENDED ACADEMIC LEARNING", how: t("სემესტრული კურსი შეფასებით") },
     ];
-    const stamp = (x, extra) => '<span class="hstamp ' + x.cls + (extra ? " " + extra : "") + '"><b>' + x.t + "</b><i>" + x.s + "</i></span>";
+    const stamp = (x) => '<span class="hstamp ' + x.cls + '"><b>' + x.t + "</b><i>" + x.s + "</i></span>";
     $("app").innerHTML =
       '<section class="home-hero"><div class="wrap home-hero-in">' +
         '<div class="home-copy">' +
           '<span class="home-kicker"><span aria-hidden="true">✱</span> BTU · AI Skills Digital Passport</span>' +
           t('<h1 class="home-title">შენი AI უნარები.<br><em>დამოწმებული BTU-ის მიერ.</em></h1>') +
-          t('<p class="home-lead">ერთი მუდმივი ციფრული პასპორტი, რომელიც სწავლასთან ერთად იზრდება. ყოველი ახალი უნარი ემატება როგორც შტამპი, ყოველი ვერსია კი ბლოკჩეინზეა დადასტურებული.</p>') +
-          t('<div class="row" style="gap:12px;margin-top:28px"><a class="btn primary" href="#verify">პასპორტის შემოწმება</a><a class="btn light" href="#login">სტუდენტის შესვლა</a><a class="btn ghost-light" href="#ledger">ბლოკჩეინის რეესტრი →</a></div>') +
+          t('<p class="home-lead">ერთი ციფრული პასპორტი ყველა AI უნარისთვის, დადასტურებული ბლოკჩეინზე.</p>') +
+          t('<div class="row" style="gap:12px;margin-top:28px"><a class="btn primary lg" href="#verify">პასპორტის შემოწმება</a><a class="btn light lg" href="#login">სტუდენტის შესვლა</a></div>') +
         "</div>" +
         passportVisual() +
       "</div></section>" +
-
-      '<section class="home-band"><div class="wrap home-stats">' +
+      '<section class="home-band"><div class="wrap home-stats three">' +
         '<div><b class="num">' + c.passports + t('</b><span>გაცემული პასპორტი</span></div>') +
         '<div><b class="num">' + c.versions + t('</b><span>ვერსია ბლოკჩეინზე</span></div>') +
         '<div><b class="num">' + skills.length + t('</b><span>AI უნარი კატალოგში</span></div>') +
-        t('<div><b>3</b><span>შტამპის ტიპი</span></div>') +
       "</div></section>" +
-
-      t('<section class="wrap home-sec"><h2 class="home-h2">როგორ იზრდება პასპორტი</h2>') +
-        '<ol class="home-steps">' +
-          t("<li><b>ისწავლე</b><span>გაიარე ვორქშოფი, ჰაკათონი ან AI კურსი BTU-ში.</span></li>") +
-          t("<li><b>BTU ადასტურებს</b><span>შედეგი Google Sheet-ში ან Excel-ით ემატება. ხელით აწყობა არ სჭირდება.</span></li>") +
-          t("<li><b>პასპორტი ახლდება</b><span>იგივე Passport ID, ახალი ვერსია: უნარი, შტამპი, თარიღი და აღწერა.</span></li>") +
-          t("<li><b>ნებისმიერი ამოწმებს</b><span>კოდით ან PDF-ით, ბლოკჩეინზე, რეგისტრაციის გარეშე.</span></li>") +
+      t('<section class="wrap home-sec"><h2 class="home-h2">როგორ მუშაობს</h2>') +
+        '<ol class="home-steps three">' +
+          t("<li><b>ისწავლე</b><span>ვორქშოფი, ჰაკათონი ან კურსი BTU-ში</span></li>") +
+          t("<li><b>მიიღე შტამპი</b><span>BTU უნარს პასპორტს ავტომატურად ამატებს</span></li>") +
+          t("<li><b>გაუზიარე</b><span>დამსაქმებელი ამოწმებს კოდით ან QR-ით</span></li>") +
         "</ol></section>" +
-
-      t('<section class="wrap home-sec"><h2 class="home-h2">სამი ტიპის შტამპი</h2><p class="home-sub">შტამპები სხვადასხვა სწავლების ფორმატს და სიღრმეს აღნიშნავს. ისინი სავალდებულო თანმიმდევრობა არ არის.</p>') +
-        '<div class="home-tiers">' + tiers.map((x) => '<div class="tier-card">' + stamp(x) + "<h3>" + x.cat + t("</h3><p><span>როგორ:</span> ") + x.how + t("</p><p><span>ნიშნავს:</span> ") + x.what + '</p><p class="muted small">' + skills.filter((s) => s.category === x.cat).length + t(" უნარი კატალოგში</p></div>")).join("") + "</div></section>" +
-
-      t('<section class="wrap home-sec"><h2 class="home-h2">ვისთვის</h2><div class="home-who">') +
-        t('<a class="who-card" href="#login"><span class="who-k">სტუდენტი</span><h3>შენი პასპორტი ერთ ადგილას</h3><p>შედი BTU ელფოსტით, ნახე და ჩამოტვირთე PDF, ნახე ვერსიების ისტორია და გაუზიარე კოდი დამსაქმებელს.</p><span class="who-go">შესვლა →</span></a>') +
-        t('<a class="who-card" href="#verify"><span class="who-k">დამსაქმებელი</span><h3>ნამდვილობა წამებში</h3><p>შეიყვანე კოდი ან ატვირთე PDF. სისტემა ამოწმებს, რომ დოკუმენტი არ შეცვლილა და რომ გამცემი ნამდვილად BTU-ა.</p><span class="who-go">შემოწმება →</span></a>') +
-        t('<a class="who-card" href="#login"><span class="who-k">BTU</span><h3>ათასობით პასპორტი ავტომატურად</h3><p>შედეგები Sheet-იდან ან Excel-იდან, PDF BTU-ის შაბლონში, ვერსიები და ბლოკჩეინი, ერთი ღილაკით.</p><span class="who-go">ადმინისტრირება →</span></a>') +
-      "</div></section>";
-
+      t('<section class="wrap home-sec" style="padding-bottom:56px"><h2 class="home-h2">სამი შტამპი</h2>') +
+        '<div class="home-tiers">' + tiers.map((x) => '<div class="tier-card">' + stamp(x) + "<h3>" + x.cat + '</h3><p class="muted">' + x.how + "</p></div>").join("") + "</div></section>";
   }
   const TIER_STAMPS = [
     { cls: "st-applied", t: "AI APPLIED SKILL", s: "APPLIED LEARNING" },
@@ -337,86 +325,107 @@
         '<div class="home-copy">' +
           t('<span class="home-kicker"><span aria-hidden="true">✱</span> საჯარო ვერიფიკაცია</span>') +
           t('<h1 class="home-title">შეამოწმე პასპორტი.<br><em>რეგისტრაციის გარეშე.</em></h1>') +
-          t('<p class="home-lead">შეიყვანე პასპორტის ყდაზე დაბეჭდილი ვერიფიკაციის კოდი ან ატვირთე მიღებული PDF. სისტემა ბლოკჩეინზე ამოწმებს, რომ დოკუმენტი არ შეცვლილა და რომ გამცემი ნამდვილად BTU-ა.</p>') +
+          t('<p class="home-lead">შეიყვანე კოდი პასპორტის ყდიდან ან ატვირთე PDF.</p>') +
           '<form id="vf" novalidate>' +
             t('<div class="home-check"><label for="v-code" class="sr">ვერიფიკაციის კოდი</label><input class="code" id="v-code" autocomplete="off" spellcheck="false" placeholder="BTUV-XXXX-XXXX-XXXX" value="') + esc(ui.verify && ui.verify.code || "") + t('"><button class="btn primary" type="submit" id="v-go">შემოწმება</button></div>') +
-            t('<div class="home-drop"><label for="v-file">ან ატვირთე PDF<span>შემოწმდება, ზუსტად ემთხვევა თუ არა ფაილი ოფიციალურ ვერსიას</span></label><input type="file" id="v-file" accept="application/pdf,.pdf"></div>') +
+            t('<label class="file-link" for="v-file"><span>ან ატვირთე PDF</span><input type="file" id="v-file" accept="application/pdf,.pdf"></label><span class="file-name" id="v-fname"></span>') +
             (samples.length ? t('<p class="home-note">სატესტო კოდები: ') + samples.map((p) => '<button type="button" class="linklike mono" data-sample="' + esc(p.verification_code) + '">' + esc(p.verification_code) + "</button>").join(" · ") + "</p>" : "") +
           "</form>" +
         "</div>" +
         passportVisual() +
       "</div></section>" +
-      '<div class="wrap stack" style="padding-top:32px">' +
-        '<div id="v-result" aria-live="polite"></div>' +
-        howItWorks() +
-      "</div>";
+      '<div class="wrap" style="padding-block:32px 56px"><div id="v-result" aria-live="polite"></div></div>';
     const form = $("vf");
     form.onsubmit = async (e) => { e.preventDefault(); await runVerify(); };
-    form.querySelectorAll("[data-sample]").forEach((b) => (b.onclick = () => { $("v-code").value = b.dataset.sample; $("v-file").value = ""; runVerify(); }));
-    if (ui.pendingCode) { $("v-code").value = ui.pendingCode; ui.pendingCode = null; runVerify().then(() => { const r = $("v-result"); if (r && r.scrollIntoView) r.scrollIntoView({ behavior: "smooth", block: "start" }); }); }
+    $("v-file").onchange = () => { const f = $("v-file").files[0]; $("v-fname").textContent = f ? f.name : ""; if (f) runVerify(); };
+    form.querySelectorAll("[data-sample]").forEach((b) => (b.onclick = () => { $("v-code").value = b.dataset.sample; $("v-file").value = ""; $("v-fname").textContent = ""; runVerify(); }));
+    const scroll = () => { const r = $("v-result"); if (r && r.scrollIntoView) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if (ui.pendingCode) { $("v-code").value = ui.pendingCode; ui.pendingCode = null; runVerify().then(scroll); }
     else if (ui.verify && ui.verify.result) showVerifyResult(ui.verify.result, ui.verify.file);
-  }
-  function howItWorks() {
-    return t('<section class="home-sec" style="padding-top:8px"><h2 class="home-h2">რას ამოწმებს სისტემა</h2><div class="home-tiers">') +
-      t('<div class="tier-card"><span class="who-k">01 · დოკუმენტი</span><h3>ოფიციალურად გაცემული</h3><p>პასპორტის ყოველი ვერსიის PDF-ის SHA-256 hash გაცემისთანავე იწერება ბლოკჩეინზე.</p></div>') +
-      t('<div class="tier-card"><span class="who-k">02 · შინაარსი</span><h3>შეუცვლელი</h3><p>თუ PDF-ში შეიცვლება თუნდაც ერთი სიმბოლო (სახელი, უნარი, თარიღი), hash აღარ დაემთხვევა და ვერიფიკაცია ვერ გაივლის.</p></div>') +
-      t('<div class="tier-card"><span class="who-k">03 · გამცემი</span><h3>გამცემი არის BTU</h3><p>ჩანაწერი ხელმოწერილია BTU-ის ციფრული გასაღებით (did:web:btu.edu.ge). ხელმოწერა საჯარო გასაღებით მოწმდება.</p></div>') +
-      "</div></section>";
   }
   async function runVerify() {
     const code = $("v-code").value.trim();
     const file = $("v-file").files[0];
     const out = $("v-result");
     if (!code && !file) { out.innerHTML = t('<div class="notice bad">შეიყვანეთ ვერიფიკაციის კოდი ან ატვირთეთ PDF.</div>'); return; }
-    out.innerHTML = t('<div class="card muted">მოწმდება ბლოკჩეინის რეესტრში…</div>');
+    out.innerHTML = t('<div class="card muted">მოწმდება…</div>');
     let res;
     if (file) res = await core.verifyPdf(new Uint8Array(await file.arrayBuffer()), code || null);
     else res = await core.verifyCode(code);
     ui.verify = { code, result: res, file: file ? file.name : null };
     showVerifyResult(res, file ? file.name : null);
   }
+  const chk = (state, text, id) => '<span class="chk ' + state + '"' + (id ? ' id="' + id + '"' : "") + '><i aria-hidden="true">' + ({ ok: "✓", bad: "✕", wait: "…", off: "–" }[state]) + "</i>" + text + "</span>";
+  const polyLink = (href, text) => '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + text + "</a>";
   function showVerifyResult(res, fileName) {
     const out = $("v-result");
-    if (!res.found) {
-      out.innerHTML = '<div class="card stack"><div class="checks">' +
-        t('<div class="check bad"><span class="ic">✕</span><div><span class="lbl">დოკუმენტის ნამდვილობა</span><b>') + (fileName ? t("PDF არ ემთხვევა ოფიციალურ ვერსიას") : t("კოდი ვერ მოიძებნა")) + "</b><p>" +
-          (fileName ? t("ატვირთული ფაილის hash ბლოკჩეინზე რეგისტრირებული არ არის. ფაილი შეცვლილია ან ოფიციალურად არ გაცემულა.") : t("ასეთი ვერიფიკაციის კოდით პასპორტი გაცემული არ არის. შეამოწმეთ კოდი.")) + "</p></div></div>" +
-        t('<div class="check bad"><span class="ic">✕</span><div><span class="lbl">გამცემის ნამდვილობა</span><b>ვერ დადასტურდა</b><p>BTU-ის ხელმოწერილი ჩანაწერი არ არსებობს.</p></div></div></div>') +
-        (fileName ? t('<dl class="kv"><dt>ატვირთული ფაილი</dt><dd>') + esc(fileName) + t('</dd><dt>ფაილის SHA-256</dt><dd class="mono">') + esc(res.docHash) + "</dd>" + (res.expected ? t('<dt>ოფიციალური ვერსიის SHA-256</dt><dd class="mono">') + esc(res.expected.doc_sha256) + "</dd>" : "") + "</dl>" : "") + "</div>";
-      return;
-    }
+    if (!res.found) return showNotFound(res, fileName);
     const d = res.data, v = res.version;
     const docOk = res.documentOk && (res.matchesCode !== false);
-    const docText = fileName
-      ? (res.matchesCode === false ? t("ატვირთული PDF ნამდვილია, მაგრამ სხვა ვერსიას ეკუთვნის, ვიდრე შეყვანილი კოდი.") : t("ატვირთული PDF ბაიტ-ბაიტ ემთხვევა ოფიციალურად გაცემულ ვერსიას და არ შეცვლილა."))
-      : t("ვერსია ოფიციალურად გაცემულია და ბლოკჩეინზეა რეგისტრირებული. სრული შემოწმებისთვის ატვირთეთ მიღებული PDF.");
-    out.innerHTML = '<div class="card edge stack">' +
-      '<div class="checks">' +
-        '<div class="check ' + (docOk ? "ok" : "bad") + '"><span class="ic">' + (docOk ? "✓" : "✕") + t('</span><div><span class="lbl">დოკუმენტის ნამდვილობა</span><b>') + (docOk ? t("ნამდვილი და შეუცვლელი") : t("ვერ დადასტურდა")) + "</b><p>" + docText + "</p></div></div>" +
-        '<div class="check ' + (res.issuerOk ? "ok" : "bad") + '"><span class="ic">' + (res.issuerOk ? "✓" : "✕") + t('</span><div><span class="lbl">გამცემის ნამდვილობა</span><b>') + (res.issuerOk ? t("გამცემი: BTU") : t("ხელმოწერა არასწორია")) + "</b><p>" + (res.issuerOk ? t("ჩანაწერი ხელმოწერილია ") + esc(res.issuer.name) + t("-ის გასაღებით · ") + esc(res.issuer.did) : t("ჩანაწერის ხელმოწერა BTU-ის რეგისტრირებულ გასაღებს არ ემთხვევა.")) + "</p></div></div>" +
+    const good = docOk && res.issuerOk;
+    const state = !good ? "bad" : res.isLatest ? "ok" : "warn";
+    const title = !good ? t("ვერ დადასტურდა") : res.isLatest ? t("ნამდვილი პასპორტი") : t("ნამდვილი, მაგრამ ძველი ვერსია");
+    const sub = !docOk ? (res.matchesCode === false ? t("PDF სხვა ვერსიას ეკუთვნის, ვიდრე შეყვანილი კოდი.") : t("PDF შეცვლილია.")) : !res.issuerOk ? t("ხელმოწერა BTU-ის გასაღებს არ ემთხვევა.") : !res.isLatest ? t("უახლესი ვერსიაა V") + res.latest.version : "";
+    out.innerHTML = '<div class="result stack">' +
+      '<div class="verdict ' + state + '"><span class="big-ic" aria-hidden="true">' + (state === "bad" ? "✕" : state === "warn" ? "!" : "✓") + "</span><div><b>" + title + "</b><span>" + esc(d.firstName + " " + d.lastName) + " · " + esc(d.passportId) + " · " + esc(d.version) + " · " + fmtDate(v.issued_at) + "</span>" + (sub ? '<span class="sub">' + sub + "</span>" : "") + "</div></div>" +
+      '<div class="chks">' +
+        chk(docOk ? "ok" : "bad", docOk ? t("დოკუმენტი შეუცვლელია") : t("დოკუმენტი შეცვლილია")) +
+        chk(res.issuerOk ? "ok" : "bad", res.issuerOk ? t("გამცემი: BTU") : t("გამცემი ვერ დადასტურდა")) +
+        (Chain.configured() ? chk("wait", "Polygon", "c-poly") : "") +
       "</div>" +
-      (res.isLatest ? t('<div class="row"><span class="pill ok">უახლესი მოქმედი ვერსია</span></div>')
-        : t('<div class="notice">ეს ') + esc("V" + v.version) + t(' ნამდვილი, მაგრამ ჩანაცვლებული ვერსიაა. პასპორტის უახლესი ვერსიაა V') + res.latest.version + t(' (კოდი: <span class="mono">') + esc(res.latest.verification_code) + "</span>).</div>") +
-      t('<div class="grid2"><div class="stack" style="gap:12px"><h3>პასპორტი</h3><dl class="kv">') +
-        t("<dt>მფლობელი</dt><dd>") + esc(d.firstName + " " + d.lastName) + "</dd>" +
-        '<dt>Passport ID</dt><dd class="mono">' + esc(d.passportId) + "</dd>" +
-        t("<dt>ვერსია</dt><dd>") + esc(d.version) + t(" · გაცემულია ") + fmtDT(v.issued_at) + "</dd>" +
-        t("<dt>პირველი გაცემა</dt><dd>") + fmtDate(d.firstIssued) + "</dd>" +
+      t("<h3>უნარები (") + d.skills.length + ")</h3>" +
+      (d.skills.length ? '<ul class="skill-list">' + d.skills.map((s) => '<li><i style="background:' + (CAT_COLOR[s.category] || "#999") + '"></i><div><b>' + esc(s.name) + "</b><span>" + esc(s.category) + "</span></div><time>" + fmtDate(s.dateEarned) + "</time></li>").join("") + "</ul>" : t('<p class="muted">უნარები ჯერ არ არის.</p>')) +
+      t('<div class="row"><button class="btn primary" id="v-dl">PDF-ის ჩამოტვირთვა</button></div>') +
+      t('<details class="tech"><summary>ტექნიკური დეტალები</summary><dl class="kv">') +
         t('<dt>ვერიფიკაციის კოდი</dt><dd class="mono">') + esc(v.verification_code) + "</dd>" +
-      "</dl></div>" +
-      t('<div class="stack" style="gap:12px"><h3>ბლოკჩეინის ჩანაწერი</h3><dl class="kv">') +
         '<dt>PDF SHA-256</dt><dd class="mono">' + esc(v.doc_sha256) + "</dd>" +
-        t("<dt>ბლოკი</dt><dd>#") + v.block_index + " · " + fmtDT(res.block.created_at) + ' · <a href="#ledger?block=' + v.block_index + t('">ბლოკჩეინზე ნახვა →</a></dd>') +
-        t('<dt>ტრანზაქცია</dt><dd class="mono">') + esc(short(v.tx_hash, 18)) + "</dd>" +
-        t('<dt>გასაღების ანაბეჭდი</dt><dd class="mono">') + esc(res.issuer.fingerprint) + "</dd>" +
-        t("<dt>რეესტრის მთლიანობა</dt><dd>") + (res.chain.ok ? '<span class="pill ok">' + res.chain.length + t(" ბლოკი, მთელია</span>") : t('<span class="pill bad">დაზიანებულია</span>')) + "</dd>" +
-      "</dl></div></div>" +
-      t("<div><h3>დადასტურებული უნარები (") + d.skills.length + t(')</h3><div class="tbl" style="margin-top:10px"><table><thead><tr><th>უნარი</th><th>ტიპი</th><th>აღწერა</th><th>მიღების თარიღი</th></tr></thead><tbody>') +
-        d.skills.map((s) => "<tr><td><b>" + esc(s.name) + "</b></td><td>" + cat(s.category) + '</td><td class="small">' + esc(s.description) + '</td><td class="num">' + fmtDate(s.dateEarned) + "</td></tr>").join("") +
-      "</tbody></table></div></div>" +
-      t('<div class="row"><button class="btn primary" id="v-dl">ოფიციალური PDF-ის ჩამოტვირთვა</button><span class="hint">ჩამოტვირთული ფაილის hash ემთხვევა ბლოკჩეინზე რეგისტრირებულს.</span></div>') +
+        t("<dt>BTU-ის ხელმოწერა</dt><dd>") + (res.issuerOk ? t("სწორია") : t("არასწორია")) + ' · <span class="mono">' + esc(res.issuer.fingerprint) + "</span></dd>" +
+        t("<dt>შიდა რეესტრი</dt><dd>") + t("ბლოკი #") + v.block_index + ' · <a href="#ledger?block=' + v.block_index + t('">ნახვა</a></dd>') +
+        (Chain.configured() ? '<dt>Polygon</dt><dd id="c-poly-d">…</dd>' : "") +
+      "</dl></details>" +
     "</div>";
     $("v-dl").onclick = () => downloadVersion(d.passportId, v.version);
+    if (Chain.configured()) checkPolygon(v);
+  }
+  // Read the record straight from the Polygon contract (no wallet, no login).
+  async function checkPolygon(v) {
+    const el = () => $("c-poly"), dd = () => $("c-poly-d");
+    try {
+      const r = await Chain.verifyDoc(v.doc_sha256);
+      const issuerOk = r.issued && (!Chain.settings().issuer || r.issuedBy.toLowerCase() === Chain.settings().issuer.toLowerCase());
+      if (!el()) return;
+      if (r.issued && issuerOk) {
+        el().outerHTML = chk("ok", t("Polygon-ზე დადასტურებულია"), "c-poly");
+        if (dd()) dd().innerHTML = "V" + r.version + " · " + fmtDT(new Date(r.issuedAt * 1000).toISOString()) + " · " + (v.chain_tx ? polyLink(Chain.links.tx(v.chain_tx), t("ტრანზაქცია →")) : polyLink(Chain.links.address(r.contract) + "#events", t("კონტრაქტი →")));
+      } else if (r.issued) {
+        el().outerHTML = chk("bad", t("Polygon: სხვა გამცემი"), "c-poly");
+        if (dd()) dd().textContent = r.issuedBy;
+      } else {
+        el().outerHTML = chk("off", t("Polygon-ზე ჯერ არ არის ჩაწერილი"), "c-poly");
+        if (dd()) dd().textContent = t("ჯერ არ არის ჩაწერილი");
+      }
+    } catch (e) {
+      if (el()) el().outerHTML = chk("off", t("Polygon: კავშირი ვერ მოხერხდა"), "c-poly");
+      if (dd()) dd().textContent = e.message;
+    }
+  }
+  // Not in this browser's records: ask Polygon directly (works on any device).
+  async function showNotFound(res, fileName) {
+    const out = $("v-result");
+    const notFound = () => {
+      out.innerHTML = '<div class="result stack"><div class="verdict bad"><span class="big-ic" aria-hidden="true">✕</span><div><b>' + (fileName ? t("PDF არ ემთხვევა ოფიციალურ ვერსიას") : t("კოდი ვერ მოიძებნა")) + "</b><span>" + (fileName ? t("ფაილი შეცვლილია ან BTU-ს არ გაუცია.") : t("შეამოწმეთ კოდი.")) + "</span></div></div>" +
+        (fileName ? t('<details class="tech"><summary>ტექნიკური დეტალები</summary><dl class="kv"><dt>ფაილი</dt><dd>') + esc(fileName) + '</dd><dt>SHA-256</dt><dd class="mono">' + esc(res.docHash) + "</dd></dl></details>" : "") + "</div>";
+    };
+    if (!Chain.configured()) return notFound();
+    out.innerHTML = t('<div class="card muted">მოწმდება Polygon-ზე…</div>');
+    let r = null;
+    try { r = fileName ? await Chain.verifyDoc(res.docHash) : await Chain.verifyCode(res.code || ui.verify.code); } catch (e) { r = null; }
+    const issuerOk = r && r.issued && (!Chain.settings().issuer || r.issuedBy.toLowerCase() === Chain.settings().issuer.toLowerCase());
+    if (!r || !r.issued || !issuerOk) return notFound();
+    out.innerHTML = '<div class="result stack"><div class="verdict ' + (r.isLatest ? "ok" : "warn") + '"><span class="big-ic" aria-hidden="true">' + (r.isLatest ? "✓" : "!") + "</span><div><b>" + (r.isLatest ? t("ნამდვილი პასპორტი") : t("ნამდვილი, მაგრამ ძველი ვერსია")) + "</b><span>V" + r.version + " · " + fmtDate(new Date(r.issuedAt * 1000).toISOString()) + t(" · ჩაწერილია Polygon-ზე") + "</span></div></div>" +
+      '<div class="chks">' + (fileName ? chk("ok", t("დოკუმენტი შეუცვლელია")) : "") + chk("ok", t("გამცემი: BTU")) + chk("ok", t("Polygon-ზე დადასტურებულია")) + "</div>" +
+      '<p class="muted" style="margin:0">' + (fileName ? t("ეს PDF ზუსტად ემთხვევა BTU-ის მიერ Polygon-ზე ჩაწერილ ვერსიას.") : t("ასეთი კოდით ვერსია BTU-მ ნამდვილად გასცა. დეტალების სანახავად სთხოვეთ მფლობელს PDF და ატვირთეთ აქ.")) + "</p>" +
+      t('<details class="tech"><summary>ტექნიკური დეტალები</summary><dl class="kv"><dt>გამცემი (Polygon)</dt><dd class="mono">') + esc(r.issuedBy) + '</dd><dt>PDF SHA-256</dt><dd class="mono">' + esc(r.docHash || res.docHash) + t("</dd><dt>კონტრაქტი</dt><dd>") + polyLink(Chain.links.address(r.contract) + "#events", esc(short(r.contract, 10)) + " →") + "</dd></dl></details></div>";
   }
 
   // ------------------------------------------------------------ student portal
@@ -426,7 +435,7 @@
     const p = core.q.passportByEmail(email);
     const s = core.q.studentByEmail(email);
     if (!p) {
-      $("app").innerHTML = t('<div class="wrap page-head"><h1>ჩემი პასპორტი</h1></div><div class="wrap stack"><div class="card edge stack"><h2>') + esc(s.first_name + " " + s.last_name) + t('</h2><div class="notice">თქვენი Digital Passport ჯერ არ გაცემულა. ის ავტომატურად შეიქმნება, როცა BTU თქვენს დადასტურებულ უნარს სისტემაში დაასინქრონებს.</div><div><button class="btn" id="s-out">გასვლა</button></div></div></div>');
+      $("app").innerHTML = '<div class="wrap page-head"><h1>' + esc(s.first_name + " " + s.last_name) + t('</h1></div><div class="wrap stack"><div class="notice">პასპორტი ჯერ არ გაცემულა. ის შეიქმნება, როცა BTU პირველ უნარს დაამატებს.</div><div><button class="btn" id="s-out">გასვლა</button></div></div>');
       $("s-out").onclick = logout;
       return;
     }
@@ -441,24 +450,22 @@
       certId: p.passport_id, certUrl: PassportPDF.verifyUrl(latest.verification_code),
     }).toString();
     $("app").innerHTML =
-      t('<div class="wrap page-head"><h1>ჩემი პასპორტი</h1><p>თქვენი AI Skills Digital Passport. Passport ID მუდმივია, ახალი უნარის დამატებისას კი იქმნება ახალი ვერსია.</p></div>') +
-      '<div class="wrap stack">' +
-        '<div class="card edge"><div class="grid2" style="align-items:start">' +
-          '<div class="stack" style="gap:10px"><h2>' + esc(p.first_name + " " + p.last_name) + "</h2>" +
-            '<dl class="kv"><dt>Passport ID</dt><dd class="mono">' + esc(p.passport_id) + t("</dd><dt>პირველი გაცემა</dt><dd>") + fmtDate(p.first_issued) + t("</dd><dt>პროგრამა</dt><dd>") + (esc([p.program, p.education_level].filter(Boolean).join(" · ")) || "—") + t("</dd><dt>ელფოსტა</dt><dd>") + esc(p.email) + "</dd></dl></div>" +
-          t('<div class="stack" style="gap:10px"><div class="row"><span class="pill ok">უახლესი ვერსია: V') + latest.version + '</span><span class="pill grey">' + latest.skills_count + t(" უნარი</span></div>") +
-            t('<dl class="kv"><dt>ვერიფიკაციის კოდი</dt><dd class="mono">') + esc(latest.verification_code) + t("</dd><dt>გაცემულია</dt><dd>") + fmtDT(latest.issued_at) + "</dd></dl>" +
-            t('<div class="row"><button class="btn primary" id="s-dl">PDF-ის ჩამოტვირთვა</button><a class="btn linkedin" href="') + esc(linkedIn) + t('" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>LinkedIn-ზე დამატება</a><button class="btn" id="s-copy">კოდის კოპირება</button><button class="btn ghost" id="s-out">გასვლა</button></div>') +
-            t('<p class="hint" style="margin:0">დამსაქმებელს გაუზიარეთ PDF ან ვერიფიკაციის კოდი. შემოწმება შესაძლებელია „ვერიფიკაციის“ გვერდზე, ავტორიზაციის გარეშე.</p></div>') +
-        "</div></div>" +
-        (latest.skills_count ? "" : t('<div class="notice info">პასპორტი გაცემულია, უნარები ჯერ არ არის. ვორქშოფის, ჰაკათონის ან კურსის წარმატებით დასრულების შემდეგ BTU უნარს დაამატებს და პასპორტის ახალი ვერსია ავტომატურად შეიქმნება.</div>')) +
-        t('<div class="card stack"><h2>პასპორტი (V') + latest.version + ')</h2><div class="pages" id="s-pages"></div></div>' +
-        t('<div class="card stack"><h2>ვერსიების ისტორია</h2><div class="tbl"><table><thead><tr><th>ვერსია</th><th>გაცემის დრო</th><th>უნარები</th><th>ვერიფიკაციის კოდი</th><th>სტატუსი</th><th></th></tr></thead><tbody>') +
-          versions.map((v) => '<tr><td><b>V' + v.version + '</b></td><td class="num">' + fmtDT(v.issued_at) + '</td><td class="num">' + v.skills_count + '</td><td class="mono">' + esc(v.verification_code) + "</td><td>" + (v.status === "LATEST" ? t('<span class="pill ok">უახლესი</span>') : t('<span class="pill grey">ჩანაცვლებული</span>')) + '</td><td><button class="btn sm" data-v="' + v.version + t('">ჩამოტვირთვა</button></td></tr>')).join("") +
-        "</tbody></table></div></div>" +
+      '<div class="wrap page-head"><h1>' + esc(p.first_name + " " + p.last_name) + '</h1><p class="meta"><span class="mono">' + esc(p.passport_id) + "</span> · V" + latest.version + " · " + latest.skills_count + t(" უნარი") + "</p></div>" +
+      '<div class="wrap stack" style="padding-bottom:56px">' +
+        '<div class="row">' +
+          t('<button class="btn primary" id="s-dl">PDF-ის ჩამოტვირთვა</button>') +
+          '<a class="btn linkedin" href="' + esc(linkedIn) + '" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>LinkedIn</a>' +
+          t('<button class="btn" id="s-copy">კოდის კოპირება</button>') +
+        "</div>" +
+        t('<p class="muted" style="margin:0">ვერიფიკაციის კოდი: <b class="mono">') + esc(latest.verification_code) + "</b></p>" +
+        (latest.skills_count ? "" : t('<div class="notice info">უნარები ჯერ არ არის. ისინი დაემატება ვორქშოფის, ჰაკათონის ან კურსის დასრულების შემდეგ.</div>')) +
+        '<div class="card stack"><div class="pages" id="s-pages"></div></div>' +
+        t('<details class="tech"><summary>ვერსიების ისტორია (') + versions.length + ")</summary>" +
+          '<div class="tbl"><table><tbody>' +
+          versions.map((v) => '<tr><td><b>V' + v.version + '</b></td><td class="num">' + fmtDate(v.issued_at) + '</td><td class="num">' + v.skills_count + t(" უნარი</td><td>") + (v.status === "LATEST" ? t('<span class="pill ok">უახლესი</span>') : t('<span class="pill grey">ძველი</span>')) + '</td><td><button class="btn sm" data-v="' + v.version + '">PDF</button></td></tr>').join("") +
+          "</tbody></table></div></details>" +
       "</div>";
     $("s-dl").onclick = () => downloadVersion(p.passport_id, latest.version);
-    $("s-out").onclick = logout;
     $("s-copy").onclick = async () => { try { await navigator.clipboard.writeText(latest.verification_code); toast(t("კოდი დაკოპირდა")); } catch (e) { toast(t("კოპირება ვერ მოხერხდა: ") + latest.verification_code); } };
     document.querySelectorAll("[data-v]").forEach((b) => (b.onclick = () => downloadVersion(p.passport_id, Number(b.dataset.v))));
     core.officialPdf(p.passport_id, latest.version).then((bytes) => renderPreview($("s-pages"), bytes)).catch((e) => ($("s-pages").innerHTML = '<div class="notice bad">' + esc(e.message) + "</div>"));
@@ -469,8 +476,8 @@
     const forAdmin = ui.loginFor === "admin";
     $("app").innerHTML =
       t('<div class="wrap page-head"><h1>შესვლა</h1><p>') + (forAdmin
-        ? t("ადმინისტრირების გვერდი მხოლოდ ადმინისტრატორისთვისაა. შედით ადმინისტრატორის ელფოსტით.")
-        : t("სტუდენტები შედიან BTU-ის ელფოსტით და ხედავენ მხოლოდ საკუთარ პასპორტს. პასპორტის ვერიფიკაციისთვის შესვლა საჭირო არ არის.")) + "</p></div>" +
+        ? t("მხოლოდ ადმინისტრატორისთვის.")
+        : t("შედი BTU ელფოსტით და ნახე შენი პასპორტი.")) + "</p></div>" +
       '<div class="wrap"><div class="card edge form" style="max-width:520px">' +
         (!otp
           ? t('<form class="form" id="l1" novalidate><label class="f" for="l-email">BTU ელფოსტა<input id="l-email" type="email" autocomplete="email" placeholder="name.surname@btu.edu.ge"></label><p class="notice bad" id="l-err" hidden></p><button class="btn primary" type="submit">ერთჯერადი კოდის გაგზავნა</button>') +
@@ -536,17 +543,19 @@
     const c = core.q.counts();
     const runs = core.q.runs();
     $("app").innerHTML =
-      t('<div class="wrap page-head"><h1>ადმინისტრირება</h1><p>მონაცემების წყაროა Google Sheet „Passport Skill Records“. ახალი დადასტურებული უნარი Sheet-ში ემატება, სისტემა კი ცვლილებას SQL მოთხოვნით აღმოაჩენს, სტუდენტის არსებულ პასპორტს ანახლებს და სტატუსს Sheet-ში უკან წერს.</p></div>') +
+      t('<div class="wrap page-head"><h1>ადმინისტრირება</h1><p>Google Sheet → პასპორტი → ბლოკჩეინი</p></div>') +
       '<div class="wrap stack">' +
         '<div class="grid4"><div class="stat"><b>' + c.passports + t('</b><span>გაცემული პასპორტი</span></div><div class="stat"><b>') + c.versions + t('</b><span>ვერსია ბლოკჩეინზე</span></div><div class="stat hot"><b>') + (counts["NOT SYNCED"] || 0) + t('</b><span>NOT SYNCED ჩანაწერი Sheet-ში</span></div><div class="stat"><b>') + (counts["FAILED"] || 0) + t('</b><span>FAILED (ხელახლა ცდა)</span></div></div>') +
-        t('<div class="card edge stack"><div class="row between" style="align-items:flex-start"><div><h2>Google Sheet → SQL → პასპორტი → ბლოკჩეინი</h2><p class="muted small" style="margin:4px 0 0">წყარო: ') + esc(source.label) + (runs[0] ? t(" · ბოლო სინქრონიზაცია: ") + fmtDT(runs[0].started_at) : "") + '</p></div><button class="btn primary" id="a-sync"' + (pending ? "" : " disabled") + t(">სინქრონიზაცია (") + pending + ")</button></div>" +
+        t('<div class="card edge stack"><div class="row between" style="align-items:flex-start"><div><h2>სინქრონიზაცია</h2><p class="muted small" style="margin:4px 0 0">წყარო: ') + esc(source.label) + (runs[0] ? t(" · ბოლო სინქრონიზაცია: ") + fmtDT(runs[0].started_at) : "") + '</p></div><button class="btn primary" id="a-sync"' + (pending ? "" : " disabled") + t(">სინქრონიზაცია (") + pending + ")</button></div>" +
           '<div id="a-syncres">' + (ui.lastSync ? syncResultHtml(ui.lastSync) : '<p class="muted small" style="margin:0">' + (pending ? t("Sheet-ში ") + pending + t(" ჩანაწერი ელოდება დამუშავებას.") : t("ყველა ჩანაწერი დასინქრონებულია.")) + "</p>") + "</div>" +
+          polygonBar() +
         "</div>" +
         '<div><div class="tabs" role="tablist">' +
           tabBtn("sheet", "Google Sheet (A–T)") + tabBtn("upload", t("შედეგების ატვირთვა (Excel)")) + tabBtn("passports", t("პასპორტები (") + c.passports + ")") + tabBtn("runs", t("სინქრონიზაციის ისტორია")) + tabBtn("source", t("წყაროს პარამეტრები")) +
         '</div><div id="a-tab"></div></div>' +
       "</div>";
     $("a-sync").onclick = doSync;
+    bindPolygonBar();
     document.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => { ui.adminTab = b.dataset.tab; renderAdmin(); }));
     ({ sheet: tabSheet, upload: tabUpload, passports: tabPassports, runs: tabRuns, source: tabSource })[ui.adminTab]();
   }
@@ -565,6 +574,37 @@
     });
     source.notify(items).then((r) => toast(t("ელფოსტა გაეგზავნა ") + ((r && r.sent) || 0) + t(" სტუდენტს"))).catch((e) => toast(t("ელფოსტის გაგზავნა ვერ მოხერხდა: ") + e.message));
   }
+  // ---------------------------------------------------------- Polygon (admin)
+  function polygonBar() {
+    const pend = core.pendingAnchors().length;
+    if (!Chain.configured()) return t('<div class="poly-bar"><span class="chk off"><i>–</i>Polygon</span><span class="muted small">კონტრაქტი ჯერ არ არის მითითებული · </span><a class="small" href="#ledger">დაყენება →</a></div>');
+    return '<div class="poly-bar">' + (pend ? '<span class="chk wait"><i>…</i>' + pend + t(" ვერსია ელოდება Polygon-ზე ჩაწერას</span>") + t('<button class="btn sm primary" id="a-anchor">Polygon-ზე ჩაწერა</button>') : t('<span class="chk ok"><i>✓</i>ყველა ვერსია ჩაწერილია Polygon-ზე</span>')) + "</div>";
+  }
+  function bindPolygonBar() { if ($("a-anchor")) $("a-anchor").onclick = anchorPending; }
+  // One wallet confirmation per batch: all pending versions go into a single issueBatch transaction.
+  async function anchorPending() {
+    const b = $("a-anchor");
+    const list = core.pendingAnchors();
+    if (!list.length) return;
+    const chunks = [];
+    for (let i = 0; i < list.length; i += 40) chunks.push(list.slice(i, i + 40));
+    if (b) { b.disabled = true; b.textContent = t("დაადასტურეთ MetaMask-ში…"); }
+    try {
+      for (const chunk of chunks) {
+        const { tx } = await Chain.issueBatch(chunk.map((v) => ({ docHash: v.doc_sha256, code: v.verification_code, passportId: v.passport_id, version: v.version })));
+        if (b) b.textContent = t("ტრანზაქცია იგზავნება…");
+        const r = await Chain.waitForReceipt(tx);
+        if (!r.ok) throw new Error(t("ტრანზაქცია უარყოფილია: ") + tx);
+        core.markAnchored(chunk, tx, r.block);
+        persist();
+      }
+      toast(list.length + t(" ვერსია ჩაიწერა Polygon-ზე"));
+    } catch (e) {
+      const msg = e && e.message === "NO_WALLET" ? t("MetaMask ვერ მოიძებნა. დააინსტალირეთ MetaMask.") : e && e.code === 4001 ? t("გაუქმდა") : (e && e.message) || String(e);
+      toast(t("Polygon: ") + msg);
+    }
+    if (ui.route === "ledger") renderLedger(); else renderAdmin();
+  }
   async function doSync() {
     const b = $("a-sync"); b.disabled = true; b.textContent = t("მიმდინარეობს…");
     try {
@@ -579,9 +619,9 @@
   function syncResultHtml(r) {
     return '<div class="stack" style="gap:12px">' +
       '<div class="row"><span class="pill ok">' + r.synced + t(' ჩანაწერი SYNCED</span><span class="pill pink">') + r.issued.length + t(' პასპორტის ვერსია გაიცა</span>') + (r.failed ? '<span class="pill bad">' + r.failed + " FAILED</span>" : "") + "</div>" +
-      '<ol class="steps">' + r.log.steps.map((s) => "<li>" + esc(s) + "</li>").join("") + "</ol>" +
       (r.log.failed.length ? '<div class="notice bad">' + r.log.failed.map((f) => esc(f.recordId + ": " + f.error)).join("<br>") + "</div>" : "") +
-      t('<details class="sql"><summary>შესრულებული SQL მოთხოვნები (') + r.log.sql.length + ")</summary><pre>" + esc(r.log.sql.join(";\n\n")) + ";</pre></details></div>";
+      t('<details class="tech"><summary>დეტალები</summary><ol class="steps">') + r.log.steps.map((s) => "<li>" + esc(s) + "</li>").join("") + "</ol>" +
+      t('<details class="sql"><summary>შესრულებული SQL მოთხოვნები (') + r.log.sql.length + ")</summary><pre>" + esc(r.log.sql.join(";\n\n")) + ";</pre></details></details></div>";
   }
 
   function tabSheet() {
@@ -746,12 +786,12 @@
     const counts = plan ? plan.rows.reduce((m, r) => (m[r.status] = (m[r.status] || 0) + 1, m), {}) : {};
     const toAdd = (counts.NEW_SKILL || 0) + (counts.NEW_STUDENT || 0) + (counts.ENROLL || 0);
     $("a-tab").innerHTML = '<div class="stack">' +
-      t('<div class="card form"><h3>ღონისძიების შედეგების ატვირთვა</h3>') +
-        t('<p class="muted small" style="margin:0"><b>ახალი სტუდენტები:</b> დატოვეთ უნარი ცარიელი და ატვირთეთ სია (სახელი, გვარი, BTU ელფოსტა). თითოეულს შეექმნება ცარიელი პასპორტი მუდმივი Passport ID-ით.<br><b>ღონისძიების შედეგები:</b> აირჩიეთ უნარი და ატვირთეთ მხოლოდ წარმატებით დასრულებულთა სია. სისტემა დაუმატებს უნარს და განაახლებს ან შექმნის პასპორტებს.</p>') +
+      t('<div class="card form"><h3>Excel-ის ატვირთვა</h3>') +
+        t('<p class="muted small" style="margin:0">უნარის გარეშე: ახალი სტუდენტები → ცარიელი პასპორტი. უნარით: ღონისძიების გამარჯვებულები → უნარი ემატება.</p>') +
         t('<div class="grid3"><label class="f" for="up-skill">უნარი (Skill)<select id="up-skill"><option value="">უნარის გარეშე: ახალი სტუდენტების რეგისტრაცია</option>') + groups.map((g) => '<optgroup label="' + g + '">' + skills.filter((s) => s.category === g).map((s) => '<option value="' + esc(s.skill_id) + '"' + (u.skillId === s.skill_id ? " selected" : "") + ">" + esc(s.skill_id + " · " + s.name) + "</option>").join("") + "</optgroup>").join("") + "</select></label>" +
         t('<label class="f" for="up-date">მიღების თარიღი (Date Earned)<input type="date" id="up-date" value="') + esc(u.date || new Date().toISOString().slice(0, 10)) + '"></label>' +
         t('<label class="f" for="up-file">Excel ფაილი (.xlsx ან .csv)<input type="file" id="up-file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>') +
-        t('<p class="hint" style="margin:0">სვეტები: <b>First Name</b>, <b>Last Name</b>, <b>Email</b> (ან სახელი, გვარი, ელფოსტა). <b>Program</b> და <b>Education Level</b> არასავალდებულოა. თუ ფაილში არის Skill ID ან Date Earned სვეტი, სტრიქონისთვის ის გამოიყენება.</p>') +
+        t('<p class="hint" style="margin:0">სვეტები: <b>First Name</b>, <b>Last Name</b>, <b>Email</b>. სურვილისამებრ: Skill ID, Date Earned.</p>') +
         (u.error ? '<div class="notice bad">' + esc(u.error) + "</div>" : "") +
       "</div>" +
       (plan ? '<div class="card stack" style="gap:14px"><div class="row between"><div><h3>' + esc(u.fileName) + '</h3><p class="muted small" style="margin:2px 0 0">' + plan.rows.length + t(" სტრიქონი") + (plan.headerFound ? "" : t(" · სათაურის სტრიქონი ვერ მოიძებნა, სვეტები ამოცნობილია შიგთავსით")) + '</p></div><button class="btn primary" id="up-go"' + (toAdd ? "" : " disabled") + t(">Sheet-ში დამატება და სინქრონიზაცია (") + toAdd + ")</button></div>" +
@@ -814,19 +854,27 @@
   }
   function tabSource() {
     $("a-tab").innerHTML = t('<div class="grid2" style="align-items:start"><form class="card form" id="src" novalidate><h3>Google Sheet-ის დაკავშირება</h3>') +
-      t('<p class="muted small" style="margin:0">რეალური Sheet უკავშირდება Google Apps Script-ით (<span class="mono">apps-script/Code.gs</span>): ის აბრუნებს A–T სვეტებს და იღებს Q–T ჩანაწერებს. გაშვების ინსტრუქცია README-შია.</p>') +
+      t('<p class="muted small" style="margin:0">კავშირი Google Apps Script-ით (<span class="mono">apps-script/Code.gs</span>).</p>') +
       '<label class="row small" style="gap:8px"><input type="radio" name="mode" value="demo"' + (source.mode === "demo" ? " checked" : "") + t(' style="width:auto"> სატესტო მონაცემები (BTU-ის მიერ მოწოდებული Sheet, ') + sheetRows.length + t(" ჩანაწერი)</label>") +
       '<label class="row small" style="gap:8px"><input type="radio" name="mode" value="google"' + (source.mode === "google" ? " checked" : "") + t(' style="width:auto"> რეალური Google Sheet (Apps Script Web App URL)</label>') +
       '<label class="f" for="src-url">Web App URL<input id="src-url" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(source.url || "") + '"></label>' +
       t('<label class="f" for="src-token">წვდომის ტოკენი (API_TOKEN)<input id="src-token" type="password" autocomplete="off" value="') + esc(source.token || "") + t('"></label><p class="hint" style="margin:0">იგივე მნიშვნელობა, რაც Apps Script-ის Script Properties-ში API_TOKEN. ინახება მხოლოდ ამ ბრაუზერში, კოდში არა.</p>') +
       t('<p class="notice bad" id="src-err" hidden></p><div><button class="btn primary" type="submit">შენახვა</button></div></form>') +
-      t('<div class="card stack"><h3>მასშტაბირება და ავტომატიზაცია</h3><ul class="steps" style="padding-left:18px"><li>ერთი სინქრონიზაცია ამუშავებს ყველა ახალ სტრიქონს და თითო სტუდენტზე ქმნის ერთ ახალ ვერსიას.</li><li>იმპორტი იდემპოტენტურია: Record ID ერთხელ მუშავდება, FAILED ჩანაწერები შემდეგ ჯერზე თავიდან მოწმდება.</li><li>PDF დეტერმინისტულია: ფაილები ბაზაში არ ინახება და ნებისმიერ დროს ზუსტად აღდგება hash-ის შემოწმებით.</li><li>რეალურ სისტემაში სინქრონიზაცია ავტომატურად გაეშვება Sheet-ის ცვლილებისას (Apps Script trigger) ან განრიგით.</li></ul>') +
+      t('<div class="card stack"><h3>დემო</h3>') +
       t('<div class="row"><button class="btn danger sm" id="reset" type="button">დემოს თავიდან დაწყება</button></div><div id="reset-confirm"></div></div></div>');
     $("src").onsubmit = async (e) => {
       e.preventDefault();
       const mode = document.querySelector('input[name="mode"]:checked').value, url = $("src-url").value.trim();
       if (mode === "google" && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { const er = $("src-err"); er.textContent = t("მიუთითეთ Apps Script Web App-ის მისამართი (https://script.google.com/macros/s/…/exec)."); er.hidden = false; return; }
+      const before = currentSource();
       store.set(KEYS.source, JSON.stringify({ mode, url, token: $("src-token").value.trim() }));
+      // A different data source means different students: start the local database again from it.
+      if (before.mode !== mode || (mode === "google" && before.url !== url)) {
+        store.del(KEYS.db); store.del(KEYS.sheet);
+        toast(t("წყარო შეიცვალა, მონაცემები თავიდან იტვირთება…"));
+        setTimeout(() => location.reload(), 600);
+        return;
+      }
       source = currentSource();
       toast(mode === "google" ? t("წყარო: რეალური Google Sheet") : t("წყარო: სატესტო მონაცემები"));
       renderAdmin();
@@ -843,16 +891,39 @@
     const issuer = core.registeredIssuer();
     const chain = await core.checkChain();
     const blocks = core.q.ledger();
+    const isAdmin = ui.session && ui.session.role === "admin";
+    const cs = Chain.settings();
+    const anchored = new Map();
+    core.q.passports().forEach((p) => core.q.versions(p.passport_id).forEach((v) => v.chain_tx && anchored.set(p.passport_id + "|V" + v.version, v.chain_tx)));
+    const pend = core.pendingAnchors().length;
     $("app").innerHTML =
-      t('<div class="wrap page-head"><h1>ბლოკჩეინის რეესტრი</h1><p>პასპორტის ყოველი გაცემული ვერსიის PDF hash და BTU-ის ხელმოწერა. ბლოკები ერთმანეთზეა გადაბმული: ძველი ჩანაწერის შეცვლა მთელ ჯაჭვს არღვევს.</p></div>') +
-      '<div class="wrap stack"><div class="grid2">' +
-        t('<div class="card edge stack" style="gap:10px"><h2>გამცემი (Issuer)</h2><dl class="kv"><dt>დასახელება</dt><dd>') + esc(issuer.name) + '</dd><dt>DID</dt><dd class="mono">' + esc(issuer.did) + t('</dd><dt>საჯარო გასაღები</dt><dd class="mono">ECDSA P-256 · ') + esc(issuer.fingerprint) + t("</dd><dt>რეგისტრაცია</dt><dd>ბლოკი #0</dd></dl>") +
-          t('<p class="hint" style="margin:0">მესამე მხარე ხელმოწერას ამ საჯარო გასაღებით ამოწმებს. საწარმოო ვერსიაში გასაღები გამოქვეყნდება მისამართზე btu.edu.ge/.well-known/did.json, ხოლო smart contract-ში ჩაწერის უფლება მხოლოდ BTU-ის მისამართს ექნება.</p></div>') +
-        t('<div class="card stack" style="gap:10px"><h2>ქსელი</h2><dl class="kv"><dt>პროტოტიპი</dt><dd>ბრაუზერში სიმულირებული ბლოკჩეინი (SHA-256 ჯაჭვი)</dd><dt>საწარმოო</dt><dd>Polygon Amoy · <span class="mono">contracts/PassportRegistry.sol</span></dd><dt>მთლიანობა</dt><dd>') + (chain.ok ? '<span class="pill ok">' + chain.length + t(" ბლოკი, ჯაჭვი მთელია</span>") : t('<span class="pill bad">დაზიანებულია: ') + chain.bad.join(", ") + "</span>") + "</dd></dl></div>" +
+      t('<div class="wrap page-head"><h1>ბლოკჩეინის რეესტრი</h1><p>ყოველი გაცემული ვერსიის PDF hash და BTU-ის ხელმოწერა.</p></div>') +
+      '<div class="wrap stack" style="padding-bottom:56px"><div class="grid2" style="align-items:start">' +
+        '<div class="card edge stack" style="gap:10px"><h2>Polygon Amoy</h2>' +
+          (Chain.configured()
+            ? t('<dl class="kv"><dt>კონტრაქტი</dt><dd>') + polyLink(Chain.links.address(cs.contract), '<span class="mono">' + esc(short(cs.contract, 10)) + "</span> →") + "</dd>" +
+              (cs.issuer ? t('<dt>BTU-ის მისამართი</dt><dd>') + polyLink(Chain.links.address(cs.issuer), '<span class="mono">' + esc(short(cs.issuer, 10)) + "</span> →") + "</dd>" : "") +
+              t("<dt>ჩაწერილია</dt><dd>") + anchored.size + " / " + (anchored.size + pend) + t(" ვერსია</dd></dl>")
+            : t('<p class="muted" style="margin:0">კონტრაქტი ჯერ არ არის მითითებული. ჩანაწერები ინახება შიდა რეესტრში.</p>')) +
+          (isAdmin ? t('<form class="form" id="poly-form" novalidate><label class="f" for="p-contract">კონტრაქტის მისამართი<input id="p-contract" class="mono" placeholder="0x…" value="') + esc(cs.contract) + t('"></label><label class="f" for="p-issuer">BTU-ის საფულის მისამართი<input id="p-issuer" class="mono" placeholder="0x…" value="') + esc(cs.issuer) + t('"></label><p class="notice bad" id="p-err" hidden></p><div class="row"><button class="btn" type="submit">შენახვა</button>') + (Chain.configured() && pend ? t('<button class="btn primary" type="button" id="a-anchor">Polygon-ზე ჩაწერა (') + pend + ")</button>" : "") + "</div></form>" : "") +
+        "</div>" +
+        t('<div class="card stack" style="gap:10px"><h2>გამცემი (Issuer)</h2><dl class="kv"><dt>დასახელება</dt><dd>') + esc(issuer.name) + '</dd><dt>DID</dt><dd class="mono">' + esc(issuer.did) + t('</dd><dt>საჯარო გასაღები</dt><dd class="mono">') + esc(issuer.fingerprint) + t("</dd><dt>შიდა რეესტრი</dt><dd>") + (chain.ok ? '<span class="pill ok">' + chain.length + t(" ბლოკი, ჯაჭვი მთელია</span>") : t('<span class="pill bad">დაზიანებულია: ') + chain.bad.join(", ") + "</span>") + "</dd></dl></div>" +
       "</div>" +
-      t('<div class="tbl tall"><table><thead><tr><th>#</th><th>დრო</th><th>ქმედება</th><th>პასპორტი / ვერსია</th><th>PDF SHA-256</th><th>Block hash</th><th>Prev hash</th></tr></thead><tbody>') +
-        blocks.map((b) => '<tr id="block-' + b.block_index + '"' + (ui.focusBlock === b.block_index ? ' class="hl"' : "") + '><td class="num"><b>' + b.block_index + '</b></td><td class="num small">' + fmtDT(b.created_at) + "</td><td>" + (b.action === "REGISTER_ISSUER" ? '<span class="pill violet">REGISTER_ISSUER</span>' : '<span class="pill pink">ISSUE_VERSION</span>') + '</td><td class="mono">' + esc(b.action === "REGISTER_ISSUER" ? issuer.did : b.ref) + '</td><td class="mono">' + esc(short(b.doc_sha256)) + '</td><td class="mono">' + esc(short(b.block_hash)) + '</td><td class="mono">' + esc(short(b.prev_hash)) + "</td></tr>").join("") +
+      t('<div class="tbl tall"><table><thead><tr><th>#</th><th>დრო</th><th>პასპორტი / ვერსია</th><th>PDF SHA-256</th><th>Polygon</th></tr></thead><tbody>') +
+        blocks.map((b) => {
+          const tx = anchored.get(b.ref);
+          return '<tr id="block-' + b.block_index + '"' + (ui.focusBlock === b.block_index ? ' class="hl"' : "") + '><td class="num"><b>' + b.block_index + '</b></td><td class="num small">' + fmtDT(b.created_at) + '</td><td class="mono">' + esc(b.action === "REGISTER_ISSUER" ? issuer.did : b.ref) + '</td><td class="mono">' + esc(short(b.doc_sha256)) + "</td><td>" + (b.action === "REGISTER_ISSUER" ? '<span class="pill violet">ISSUER</span>' : tx ? polyLink(Chain.links.tx(tx), '<span class="pill ok">' + esc(short(tx, 8)) + "</span>") : '<span class="pill grey">' + (Chain.configured() ? t("მოლოდინში") : "—") + "</span>") + "</td></tr>";
+        }).join("") +
       "</tbody></table></div></div>";
+    if ($("poly-form")) $("poly-form").onsubmit = (e) => {
+      e.preventDefault();
+      const c = $("p-contract").value.trim(), i = $("p-issuer").value.trim(), err = $("p-err");
+      if ((c && !Chain.isAddress(c)) || (i && !Chain.isAddress(i))) { err.textContent = t("მისამართი უნდა იყოს 0x-ით დაწყებული 42-სიმბოლოიანი."); err.hidden = false; return; }
+      Chain.saveSettings({ contract: c, issuer: i });
+      toast(t("შენახულია"));
+      renderLedger();
+    };
+    if ($("a-anchor")) $("a-anchor").onclick = anchorPending;
     const row = ui.focusBlock != null && document.getElementById("block-" + ui.focusBlock);
     if (row) setTimeout(() => row.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   }

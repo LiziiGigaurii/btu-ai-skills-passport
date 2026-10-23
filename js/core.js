@@ -89,6 +89,8 @@
 
     async function init(keyJwk) {
       SCHEMA.forEach((s) => sql.exec(s));
+      // Polygon anchoring (added later): transaction and block of each version, if written on-chain.
+      for (const col of ["chain_tx TEXT", "chain_block INTEGER"]) { try { sql.exec("ALTER TABLE passport_versions ADD COLUMN " + col); } catch (e) { /* already there */ } }
       if (keyJwk) {
         const priv = await subtle.importKey("jwk", keyJwk.privateJwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
         const pub = await subtle.importKey("jwk", keyJwk.publicJwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["verify"]);
@@ -384,6 +386,14 @@
     }
 
     // --------------------------------------------------------------- reads
+    // Versions not yet written to Polygon, oldest first (so versions of one passport stay in order).
+    function pendingAnchors() {
+      return sql.all(`SELECT passport_id, version, verification_code, doc_sha256, issued_at FROM passport_versions
+                      WHERE chain_tx IS NULL OR chain_tx = '' ORDER BY issued_at, passport_id, version`, []);
+    }
+    function markAnchored(list, tx, block) {
+      list.forEach((v) => sql.run("UPDATE passport_versions SET chain_tx = ?, chain_block = ? WHERE passport_id = ? AND version = ?", [tx, block, v.passport_id, v.version]));
+    }
     const q = {
       passports: () => sql.all(`SELECT p.*, s.email, s.program, s.education_level, s.student_status, v.verification_code, v.issued_at AS latest_issued_at, v.skills_count
                                 FROM passports p JOIN students s ON s.student_id = p.student_id
@@ -402,7 +412,7 @@
     };
 
     return {
-      init, exportIssuerKey, importExistingIssuance, sync, verifyCode, verifyPdf, officialPdf, renderPdf, versionData,
+      init, exportIssuerKey, importExistingIssuance, sync, verifyCode, verifyPdf, officialPdf, renderPdf, versionData, pendingAnchors, markAnchored,
       checkChain, registeredIssuer, q, sha256, issuerFingerprint: () => issuerKeys.fingerprint, nextPassportId,
       stageSheet: (rows) => { stageSheet(rows); upsertReference(); },
     };

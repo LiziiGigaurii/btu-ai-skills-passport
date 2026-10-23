@@ -131,16 +131,23 @@ Q–T სვეტები სისტემის მართვაშია
 - **LinkedIn-ზე დამატება** (სტუდენტის გვერდი): წინასწარ შევსებული „Licenses & certifications“ ფორმა. Credential ID = Passport ID, Credential URL = უახლესი ვერსიის ვერიფიკაცია, ვადა 20 წელი.
 - **ელფოსტა** (მხოლოდ რეალურ Google Sheet-თან): შესვლის ერთჯერადი კოდი (`sendCode` / `checkCode`) და შეტყობინება ყოველი ახალი ვერსიისას (`notify`): დამატებული უნარები, ვერიფიკაციის ბმული და QR. იგზავნება Apps Script-ის `MailApp`-ით.
 
-## ბლოკჩეინი
+## ბლოკჩეინი: Polygon Amoy
 
-პროტოტიპში ბლოკჩეინი ბრაუზერშია სიმულირებული: SHA-256 ბლოკების ჯაჭვი BTU-ის ხელმოწერით. საწარმოო ვერსიისთვის მზადაა `contracts/PassportRegistry.sol` (Polygon Amoy):
+ყოველი გაცემული ვერსია ორ ადგილას იწერება:
+- **შიდა რეესტრი** (ბრაუზერში): SHA-256 ბლოკების ჯაჭვი BTU-ის ECDSA ხელმოწერით.
+- **Polygon Amoy** (საჯარო სატესტო ქსელი): კონტრაქტი `contracts/PassportRegistry.sol`. ერთი სინქრონიზაციის ყველა ახალი ვერსია იწერება **ერთ ტრანზაქციაში** (`issueBatch`), BTU-ის საფულით (MetaMask). საიდუმლო გასაღები კოდში არ ინახება.
 
-1. [remix.ethereum.org](https://remix.ethereum.org) → ჩასვით კონტრაქტი → Compile (0.8.24+).
-2. MetaMask-ში Polygon Amoy ქსელი და faucet-იდან ტესტ-POL.
-3. Deploy (Injected Provider). Deploy-ის მისამართი BTU-ის issuer მისამართია.
-4. ყოველ გაცემაზე: `issue(docHash, keccak256(passportId), version)`, შემოწმება: `verify(docHash)`.
+ვერიფიკაცია ნებისმიერ მოწყობილობაზე კითხულობს კონტრაქტს საჯარო RPC-ით (`verify`, `verifyCode`), საფულის და შესვლის გარეშე. On-chain მხოლოდ hash-ებია: PDF-ის SHA-256, ვერიფიკაციის კოდის keccak256 და Passport ID-ის keccak256. სახელი, ელფოსტა ან უნარები არ იწერება.
 
-On-chain არ ინახება პერსონალური მონაცემები: მხოლოდ PDF-ის hash, Passport ID-ის hash და ვერსიის ნომერი.
+### გაშვება (ერთხელ, ~15 წუთი)
+1. **MetaMask:** [metamask.io](https://metamask.io) → Chrome extension → ახალი საფულე. ეს იქნება BTU-ის საფულე (გამცემი). Secret Recovery Phrase შეინახეთ უსაფრთხოდ და არავის გაუზიაროთ.
+2. **Polygon Amoy ქსელი:** საიტი თავად დაამატებს პირველი დაკავშირებისას. ან ხელით: [chainlist.org/chain/80002](https://chainlist.org/chain/80002).
+3. **უფასო სატესტო POL:** [faucet.polygon.technology](https://faucet.polygon.technology) (ქსელი: Amoy) ან სხვა Amoy faucet. ჩასვით საფულის მისამართი. საკმარისია 0.1–0.5 POL.
+4. **კონტრაქტის გაშვება:** [remix.ethereum.org](https://remix.ethereum.org) → ახალი ფაილი `PassportRegistry.sol` → ჩასვით კონტრაქტის კოდი → **Solidity Compiler** (0.8.24+) → Compile → **Deploy & Run** → Environment: **Injected Provider – MetaMask** (ქსელი Amoy) → **Deploy** → MetaMask-ში დადასტურება. Deployed Contracts-ში დააკოპირეთ კონტრაქტის მისამართი (`0x…`).
+5. **საიტზე:** ადმინისტრატორით შესვლა → **ბლოკჩეინი** → კონტრაქტის მისამართი და BTU-ის საფულის მისამართი → შენახვა → **Polygon-ზე ჩაწერა** → MetaMask-ში დადასტურება.
+6. **ყველა მოწყობილობისთვის:** კონტრაქტისა და საფულის მისამართი ჩაწერეთ `js/chain.js`-ში (`DEFAULTS.CONTRACT`, `DEFAULTS.ISSUER`), რომ ვერიფიკაციამ Polygon ყველა ბრაუზერში შეამოწმოს.
+
+ჩანაწერები ჩანს: `https://amoy.polygonscan.com/address/<კონტრაქტი>#events`.
 
 ## ფაილები
 
@@ -148,6 +155,7 @@ On-chain არ ინახება პერსონალური მო�
 index.html                    საიტი (ვერიფიკაცია, ჩემი პასპორტი, ადმინისტრირება, ბლოკჩეინი)
 js/app.js                     ინტერფეისი
 js/i18n.js                    ენის გადამრთველი და ინგლისური თარგმანი
+js/chain.js                   Polygon: Keccak-256, ABI, MetaMask, საჯარო RPC
 js/core.js                    სერვისი: SQL სქემა, სინქრონიზაცია, ვერსიები, ხელმოწერა, ბლოკჩეინი, ვერიფიკაცია
 js/passport-pdf.js            PDF-ის გენერაცია BTU-ის შაბლონში
 assets/passport-template.pdf  BTU-ის ცარიელი შაბლონი (assets/template.js: იგივე base64-ში)
