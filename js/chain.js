@@ -191,7 +191,7 @@
     return { tx, from };
   }
   // Polygon rejects transactions whose priority fee ("tip") is below 25 gwei, but wallets often
-  // propose less. Set the fees explicitly: tip 30 gwei, max fee = 2 x current base fee + tip.
+  // propose less. Set the fees explicitly: tip 30 gwei, max fee = 1.5 x current base fee + tip.
   const GWEI = 1000000000n;
   async function fees() {
     const tip = 30n * GWEI;
@@ -206,7 +206,7 @@
       } catch (e2) {}
     }
     const hex = (n) => "0x" + n.toString(16);
-    return { maxPriorityFeePerGas: hex(tip), maxFeePerGas: hex(2n * base + tip + 5n * GWEI) };
+    return { maxPriorityFeePerGas: hex(tip), maxFeePerGas: hex(base + base / 2n + tip + 5n * GWEI) };
   }
   async function waitForReceipt(tx, timeoutMs) {
     const end = Date.now() + (timeoutMs || 120000);

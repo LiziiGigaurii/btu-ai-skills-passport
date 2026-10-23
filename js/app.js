@@ -587,7 +587,7 @@
     const list = core.pendingAnchors();
     if (!list.length) return;
     const chunks = [];
-    for (let i = 0; i < list.length; i += 40) chunks.push(list.slice(i, i + 40));
+    for (let i = 0; i < list.length; i += 15) chunks.push(list.slice(i, i + 15)); // small batches: the wallet must hold gas limit x max fee
     if (b) { b.disabled = true; b.textContent = t("დაადასტურეთ MetaMask-ში…"); }
     try {
       for (const chunk of chunks) {
