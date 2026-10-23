@@ -187,8 +187,26 @@
     if (!isAddress(c)) throw new Error("NO_CONTRACT");
     const from = await connect();
     const data = encodeIssueBatch(items.map((x) => sha256Hex(x.docHash)), items.map((x) => codeHash(x.code)), items.map((x) => passportRef(x.passportId)), items.map((x) => x.version));
-    const tx = await wallet().request({ method: "eth_sendTransaction", params: [{ from, to: c, data }] });
+    const tx = await wallet().request({ method: "eth_sendTransaction", params: [Object.assign({ from, to: c, data }, await fees())] });
     return { tx, from };
+  }
+  // Polygon rejects transactions whose priority fee ("tip") is below 25 gwei, but wallets often
+  // propose less. Set the fees explicitly: tip 30 gwei, max fee = 2 x current base fee + tip.
+  const GWEI = 1000000000n;
+  async function fees() {
+    const tip = 30n * GWEI;
+    let base = 0n;
+    try {
+      const b = await rpc("eth_getBlockByNumber", ["latest", false]);
+      base = BigInt((b && b.baseFeePerGas) || 0);
+    } catch (e) {
+      try {
+        const b = await wallet().request({ method: "eth_getBlockByNumber", params: ["latest", false] });
+        base = BigInt((b && b.baseFeePerGas) || 0);
+      } catch (e2) {}
+    }
+    const hex = (n) => "0x" + n.toString(16);
+    return { maxPriorityFeePerGas: hex(tip), maxFeePerGas: hex(2n * base + tip + 5n * GWEI) };
   }
   async function waitForReceipt(tx, timeoutMs) {
     const end = Date.now() + (timeoutMs || 120000);
