@@ -514,7 +514,7 @@
         e.preventDefault();
         const err = $("l-err");
         const done = () => {
-          setSession({ email: otp.email, role: otp.role }); ui.otp = null; ui.loginFor = null;
+          setSession({ email: otp.email, role: otp.role }); ui.otp = null; ui.loginFor = null; setTimeout(autoSync, 500);
           const target = "#" + otp.role;
           if (location.hash === target) go(); else location.hash = target;
         };
@@ -546,7 +546,7 @@
       t('<div class="wrap page-head"><h1>ადმინისტრირება</h1><p>Google Sheet → პასპორტი → ბლოკჩეინი</p></div>') +
       '<div class="wrap stack">' +
         '<div class="grid4"><div class="stat"><b>' + c.passports + t('</b><span>გაცემული პასპორტი</span></div><div class="stat"><b>') + c.versions + t('</b><span>ვერსია ბლოკჩეინზე</span></div><div class="stat hot"><b>') + (counts["NOT SYNCED"] || 0) + t('</b><span>NOT SYNCED ჩანაწერი Sheet-ში</span></div><div class="stat"><b>') + (counts["FAILED"] || 0) + t('</b><span>FAILED (ხელახლა ცდა)</span></div></div>') +
-        t('<div class="card edge stack"><div class="row between" style="align-items:flex-start"><div><h2>სინქრონიზაცია</h2><p class="muted small" style="margin:4px 0 0">წყარო: ') + esc(source.label) + (runs[0] ? t(" · ბოლო სინქრონიზაცია: ") + fmtDT(runs[0].started_at) : "") + '</p></div><button class="btn primary" id="a-sync"' + (pending ? "" : " disabled") + t(">სინქრონიზაცია (") + pending + ")</button></div>" +
+        t('<div class="card edge stack"><div class="row between" style="align-items:flex-start"><div><h2>სინქრონიზაცია</h2><p class="muted small" style="margin:4px 0 0">წყარო: ') + esc(source.label) + (runs[0] ? t(" · ბოლო სინქრონიზაცია: ") + fmtDT(runs[0].started_at) : "") + '</p><p class="muted small" id="a-auto" style="margin:2px 0 0">' + autoLabel() + '</p></div><button class="btn primary" id="a-sync"' + (pending ? "" : " disabled") + t(">სინქრონიზაცია (") + pending + ")</button></div>" +
           '<div id="a-syncres">' + (ui.lastSync ? syncResultHtml(ui.lastSync) : '<p class="muted small" style="margin:0">' + (pending ? t("Sheet-ში ") + pending + t(" ჩანაწერი ელოდება დამუშავებას.") : t("ყველა ჩანაწერი დასინქრონებულია.")) + "</p>") + "</div>" +
           polygonBar() +
         "</div>" +
@@ -607,6 +607,7 @@
   }
   async function doSync() {
     const b = $("a-sync"); b.disabled = true; b.textContent = t("მიმდინარეობს…");
+    autoBusy = true;
     try {
       const res = await core.sync();
       persist();
@@ -614,6 +615,7 @@
       notifyIssued(res);
       toast(t("სინქრონიზაცია დასრულდა: ") + res.issued.length + t(" პასპორტი განახლდა"));
     } catch (e) { toast(t("შეცდომა: ") + e.message); }
+    autoBusy = false;
     renderAdmin();
   }
   function syncResultHtml(r) {
@@ -928,8 +930,44 @@
     if (row) setTimeout(() => row.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   }
 
+
+  // ------------------------------------------------- automatic sync (Google Sheet)
+  // While an administrator has the site open, the connected Google Sheet is checked every
+  // minute. New rows (Sync Status empty or NOT SYNCED) are processed like a button press:
+  // students and passports are created and the status is written back to the Sheet.
+  const AUTO_MS = 60000;
+  let autoBusy = false;
+  const autoOn = () => !!(source && source.mode === "google" && ui.session && ui.session.role === "admin");
+  const isNew = (r) => String(r.recordId || "").trim() && (!String(r.syncStatus || "").trim() || String(r.syncStatus).trim().toUpperCase() === "NOT SYNCED");
+  async function autoSync() {
+    if (!autoOn() || autoBusy || document.hidden) return;
+    autoBusy = true;
+    try {
+      const rows = await source.read();
+      ui.autoError = null;
+      if (rows.some(isNew)) {
+        const res = await core.sync();
+        persist();
+        ui.lastSync = res;
+        notifyIssued(res);
+        toast(t("ავტომატური სინქრონიზაცია: ") + res.issued.length + t(" პასპორტი განახლდა"));
+        if (ui.route === "admin" && ui.adminTab !== "upload") { autoBusy = false; renderAdmin(); }
+      }
+      ui.autoChecked = new Date().toISOString();
+    } catch (e) { ui.autoError = e.message; console.warn("auto sync:", e); }
+    autoBusy = false;
+    const el = $("a-auto"); if (el) el.innerHTML = autoLabel();
+  }
+  function autoLabel() {
+    if (source.mode !== "google") return t("ავტომატური სინქრონიზაცია მუშაობს Google Sheet-თან დაკავშირებისას");
+    if (ui.autoError) return t("ავტომატური სინქრონიზაცია: Sheet ვერ წაიკითხა · ") + esc(ui.autoError);
+    return t("ავტომატური სინქრონიზაცია ჩართულია: Sheet მოწმდება ყოველ წუთში") + (ui.autoChecked ? t(" · ბოლო შემოწმება ") + ui.autoChecked.slice(11, 16) + " UTC" : "");
+  }
+  setInterval(autoSync, AUTO_MS);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) autoSync(); });
+
   // ------------------------------------------------------------ start
-  boot().then(go).catch((e) => {
+  boot().then(() => { go(); setTimeout(autoSync, 1500); }).catch((e) => {
     $("app").innerHTML = t('<div class="wrap" style="padding-block:60px"><div class="notice bad">სისტემის ჩატვირთვა ვერ მოხერხდა: ') + esc(e.message) + "</div></div>";
     console.error(e);
   });

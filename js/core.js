@@ -198,6 +198,7 @@
       rows.forEach((r, i) => {
         const vals = SHEET_FIELDS.map((f) => (r[f] == null ? "" : String(r[f]).trim()));
         vals[13] = CATEGORIES[vals[12]] || "CHECK CATEGORY"; // N: badge code is derived from M
+        if (!vals[16] && vals[9]) vals[16] = "NOT SYNCED"; // Q: a new row typed without a status is new
         sql.run(`INSERT INTO sheet_rows (row_no, ${SQL_COLS.join(", ")}) VALUES (?, ${ph})`, [i].concat(vals));
       });
       if (sqlLog) sqlLog.push(`INSERT INTO sheet_rows (row_no, student_id, ..., sync_error) VALUES (...) -- ${rows.length} rows`);
